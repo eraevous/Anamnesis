@@ -124,7 +124,7 @@ Every evidence link has these fields [thread → proposed shape]:
 | field | values | why |
 |---|---|---|
 | `speaker` | `user`, `assistant`, `tool`, `system` (from `author_role` [code]) | who said it |
-| `artifact_class` | `user_statement`, `assistant_reply`, `imported_draft` (text pasted from another model or person), `instruction` (prompt or setup text addressed to a model), `generated_summary`, `code_or_log` | what kind of text it is, independent of who pasted it |
+| `artifact_class` | `user_statement`, `assistant_reply`, `imported_draft` (text pasted from another model or person), `instruction` (prompt or setup text addressed to a model), `generated_summary`, `code_or_log`, `unclassified` (the safe default for pasted or quoted blocks, rule 6) | what kind of text it is, independent of who pasted it |
 | `local_stance` | `asserts`, `proposes`, `questions`, `rejects`, `quotes`, `instructs` | what the span does where it sits |
 | `acceptance_status` | `accepted` (with the unit where the user accepts), `rejected` (with the unit), `unreviewed`, `superseded` | what the user did with it |
 | `canonical_eligibility` | `eligible`, or `ineligible:<reason>` | whether it may ground a claim placed `core` |
@@ -135,6 +135,8 @@ Rules [proposed]:
 2. `imported_draft` is `ineligible:unaccepted_import` until accepted. This is what stops rejected external drafts becoming canon [thread].
 3. `instruction` text is never eligible and never becomes a claim on its own. This is the instruction-echo guard: the top claim in 2026-08 was the run's own prompt echoed back [thread].
 4. `generated_summary`, including any earlier output of this pipeline, is never evidence (§5, rule 3).
+
+Two levels, so the rules don't over-reach: evidence is **admissible** when it is a quote span in a source unit and its class is not `instruction` or `generated_summary`; admissible evidence can support claims of any placement. **Canonical eligibility** is the stricter test (rule 1), and it is required only for claims placed `core`.
 5. An assistant reply the user never responded to is `unreviewed`; it can support `adjacency` or `application`, not `core`.
 6. **Classification is itself a judgement, so its default is the safe one** (added after the stress test). Text inside a user message is not automatically `user_statement`: a long block, a quoted block, or a block the user introduces as someone else's starts as `artifact_class: unclassified`, which is `ineligible:unclassified` until it is classified with a recorded rationale. Otherwise a misclassified paste would get the same free pass to canon that 2026-08 gave it.
 7. A `user_statement` is eligible, not automatically current: a later user statement that contradicts it gives `MARK_CONFLICTING` (or `SUPERSEDE` when the user says so), ordered by timestamp (§5 rule 9).
@@ -154,11 +156,11 @@ The rescue already has the right vocabulary [code]: `ClaimRevision` with `claim_
 | operation | must cite |
 |---|---|
 | `PRESERVE` | nothing new (explicit or implicit) |
-| `STRENGTHEN` | at least one new eligible evidence link |
+| `STRENGTHEN` | at least one new admissible evidence link (eligible if the claim is `core`) |
 | `WEAKEN` | the evidence, guard result or adjudication that weakened it |
 | `MARK_CONFLICTING` | the conflicting evidence link |
 | `SUPERSEDE` | the new claim id and the evidence for it |
-| `ADD` | eligible evidence for the new claim |
+| `ADD` | admissible evidence for the new claim (eligible if the claim is `core`) |
 | `LEAVE_UNRESOLVED` | the objective that failed to settle it |
 
 6. **The quote guard downgrades; it does not only report.** For every evidence link on a claim: the quoted span must occur verbatim (after whitespace normalisation) in the cited unit, and must clear an overlap threshold with the claim text. A failure writes a `WEAKEN` revision automatically, with reason `quote_guard`: `EXPLICIT → INFERRED`, and `INFERRED → UNRESOLVED` if no link survives. In 2026-08 the guard flagged 7 citations and downgraded 0 claims [thread]. A guard that reports without writing a revision fails its test.
