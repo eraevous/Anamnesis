@@ -1,6 +1,7 @@
 # Design note: living memory, a memory network, and the first full run
 
-- Status: **proposed, design only.** Nothing here is built or accepted. Zach decides; Kate reviews first.
+- Status: **direction adopted (D1), design only.** Zach answered D1–D5 on 2026-11-15 (§7). Nothing is built. The R-MEM requirements become committed only when Zach merges the PR that records them; D4 is open and under research.
+- Revised by `claude:anamnesis#wake-20261115-17` for handoff HO-KAI-20261115-936P: §2 (rolling Cells, family), §3 (nothing applies automatically until D4), §4.5 (embeddings), §7 (answers). Two of the readings applied here are the coordinator's and are **unconfirmed** (R1, R2 in §7).
 - Author: `claude:anamnesis#wake-2026-11-15-05`, a scheduled run, for handoff HO-KAI-20261115-7MV6 (private coordination records; named by id only).
 - Basis: two messages from Zach (2026-11-14, quoted in §0), and his confirmation of the coordinator's reading that this is design input, not a build request.
 - Builds on, and does not replace: [segment retrieval and claim recurrence](segment-retrieval-and-claim-recurrence.md) (the claim ledger, evidence classes, quote guard), [the saga](saga.md) (narrative layer that descends to records), [benchmark fixtures](benchmark-fixture-plan.md).
@@ -67,15 +68,23 @@ Design the store around the units Zach already defined [seed] rather than new on
 
 | unit [seed] | definition [seed] | storage form [proposed] |
 |---|---|---|
-| **Cell** | "An atomic interaction—one input (prompt) and one output (response)." | `cell:<conversation>:<user_unit>→<reply_unit>`. A view over two **message units** (the offline core's atom, one message each [existing]). |
+| **Cell** | "An atomic interaction—one input (prompt) and one output (response)." | **Rolling Cell** (D2): `cell:<conversation>:<i>→<i+1>`, any two consecutive messages on one branch path, sliding by one, with `direction` (`human→model` or `model→human`), `platform` and `model`. Built over two **message units** (one message each [existing]). |
 | **Thread** | "A linear sequence of Cells forming a coherent dialogue or process." | one root-to-tip branch path through Cells |
 | **Fork / Branch / Node** | a new Thread from a Cell or Frame; a named fork; the forking Cell | from the export's `mapping`: alternates and edits already carry `branch_status` [existing]. A Node is a Cell with >1 child. |
 | **Frame** | "A bounded, context-rich memory object, composed of selected Cells and metadata." | the rendered memory objects of §1 (and saga chapters), always stamped with the ledger revision they came from |
 | **Film** | "A stylized or annotated version of a Thread, often organized thematically or narrative[ly]." | an ordered list of Cell or segment references with annotations, stored separately from the sources. A **strand** is a Film whose Cells come from more than one Thread. |
 
-**One open choice (D2 in §7).** The evidence atom stays the **message unit**, not the Cell: quote spans must not cross speakers, and Zach's turn must be separable from the reply [existing: gap 3 of the round-trip check]. The Cell is the unit for indexing, display and linking. If Zach means the Cell to be the atom in every sense, the quote-guard rules need restating per half-Cell.
+**D2, answered: rolling Cells.** **[Zach]** "these should be rolling cells, i.e. call response pairs that do overlap. So most every call will also be a response sort of thing, like a chain. That way we can look at more easily what passed through from often what passes from the initiating text and then what comes out of that, whether it's the human processing it or the robot processing it."
 
-**"Family"** isn't in core_seed. This note reads "inter-family cell" as a Cell linked across **model families** (Claude, ChatGPT, others) **[unconfirmed reading]**. Design consequence either way: every Cell records `platform` and `model` (when the export has it), so cross-family links are a filter, not a new structure.
+How this note applies it (the coordinator's reading R1, **[unconfirmed reading]**):
+
+- A Cell is the pair `(m[i], m[i+1])` along one branch path, sliding by one. Every message except a Thread's first and last is the response in one Cell and the call in the next, so a Thread of *n* messages has *n−1* Cells.
+- Each Cell records its `direction`: `human→model` (a model transforms Zach's text) or `model→human` (Zach transforms a model's text). A chain of Cells shows what passed from the initiating text into each reply, and who transformed it.
+- At a fork, the call message starts one Cell per child, so the Fork tree is a tree of Cells.
+- **The Cell is the evidence atom; quote spans stay inside one half.** A claim cites a Cell and a span in its call or its response, never a span across both. That keeps Zach's words separable from the reply [existing: gap 3 of the round-trip check] and keeps the quote guard per message.
+- Indexes (§4.2) can key on either: the Cell index embeds the pair; the user-only and reply-only indexes embed single messages. The synthetic probe (§4.5) builds rolling Cells and checks the *n−1* count and both directions.
+
+**D5, confirmed: family means model family** (Claude, ChatGPT, others). **[Zach]** "4, yes". Every Cell records `platform` and `model` (when the export has it), so cross-family links are a filter, not a new structure.
 
 ## 3. The memory network [proposed]
 
@@ -101,7 +110,7 @@ The Challenger is the natural seat for the other model family (Kate's role in Ka
 
 - Each job run writes a **run record**: role, model, inputs (`ledger@n`, Cell range), outputs (revision ids), validator results, cost.
 - Discussions between roles are kept as artifacts of class `agent_discussion` (a kind of `generated_summary`): readable, linkable from a revision's rationale, never evidence.
-- Auto-applied: only the Auditor's mechanical revisions (they are reversible and rule-based). Everything else lands as `proposed` until a review rule accepts it: sampled by Zach, or all of them at first (open question Q4 in [open questions](open-questions-2026-11-10.md) applies here too).
+- **Auto-applied: nothing, until D4 is answered.** **[Zach]** "I think we need to research that because I don't have a clear answer on when, whether, and which revisions should apply automatically." Every revision, the Auditor's mechanical ones included, lands as `proposed` until a review rule accepts it. The evidence packet for that decision is [D4: automatic revisions](../research/d4-automatic-revisions.md); its recommendation is a proposal, not adopted.
 - A network that runs and changes nothing on new evidence raises the `inert_recurrence` flag [existing].
 
 ## 4. The first run: a full Cognitive-Scaffolding pass (design, not authorized)
@@ -146,7 +155,11 @@ Each vector index stores the embedding model id and version per row, so a re-emb
 
 ### 4.5 Privacy and provider questions (must be answered before the real run)
 
-- Where embeddings are computed: a local model (slower, no data leaves the machine) or a provider API (which provider, under which terms, with what retention). This is D3.
+- **Where embeddings are computed (D3, answered).** **[Zach]** "test local, like let's see how well that works. I also am okay and authorizing using OpenAI's embeddings as per the original cognitive scaffolding with pretty much full retention."
+  - Both sit behind one `Embedder` interface (`model_id`, `dim`, `embed(texts)`); every vector row stores `model_id`, so switching models is a new index.
+  - "Full retention" is read as: Kairos keeps the full text, the vectors and the provenance on its own side, as Cognitive-Scaffolding did. It does not ask the provider to retain anything (coordinator's reading R2, **[unconfirmed reading]**).
+  - The local test so far: [embedding probe](../../experiments/embedding-probe/README.md). It is a small synthetic test; the stronger local models need a run where model downloads are allowed.
+  - The OpenAI authorization covers embedding calls. The first full run on Zach's export is still a separate go.
 - Where the store lives and how it is deleted.
 - Whether any Frame may be shown to another agent or model, and which shelves (people especially) stay local-only.
 - These follow the existing rule: synthetic fixtures in repositories, real material only where Zach puts it.
@@ -176,24 +189,30 @@ Baselines to beat: FTS alone; plain vector retrieval over Cells; Frames without 
   - His time: reviewing proposed revisions. Sampling keeps this bounded, but early on he would see most of them.
 - **What can wait:** Challenger, Librarian and Steward roles; visuals; the people shelf (the most sensitive); cross-family strands beyond ChatGPT until other exports exist.
 - **What depends on it:** the saga's generation [existing]; Today and other surfaces that would read Frames; any future "what did I decide about X" question answered with sources.
-- **What doesn't change:** nothing personal enters a repository; no provider is called until D3; no claim reaches `core` without his words or his acceptance.
+- **What doesn't change:** nothing personal enters a repository; no provider is called on his material before the separate go for the first full run; no claim reaches `core` without his words or his acceptance.
 
-## 7. Decisions for Zach (none taken here)
+## 7. Decisions for Zach
 
-| id | question | blocks |
-|---|---|---|
-| D1 | Adopt this direction (Dreaming-style synthesis with provenance, reversible history and shelves; a propose-only network)? | everything below |
-| D2 | Is the evidence atom the message unit (Cell as index/display unit), or the Cell itself? | index schema |
-| D3 | Embeddings for the real run: local model or which provider, under what retention? | the first real run |
-| D4 | Which revisions may apply automatically (proposed: Auditor's mechanical ones only)? | the network |
-| D5 | Does "family" mean model family? | strand metadata |
-| (existing) | Public port of the offline core + FTS5 to Cognitive-Scaffolding (pending since 2026-11-07). | the first build step |
+Answered 2026-11-15 11:03 CT on the decision sheet (verbatim record in the private coordination records, `kairos/decisions/answers-2026-11-15.md`).
+
+| id | question | answer | status |
+|---|---|---|---|
+| D1 | Adopt this direction (Dreaming-style synthesis with provenance, reversible history and shelves; a propose-only network)? | "D1, yes." | **adopted**; R-MEM records committed on merge of this revision |
+| D2 | Is the evidence atom the message unit, or the Cell? | "these should be rolling cells, i.e. call response pairs that do overlap …" | **rolling Cells** (§2); reading R1 unconfirmed |
+| D3 | Embeddings: local model or which provider, under what retention? | "test local … I also am okay and authorizing using OpenAI's embeddings as per the original cognitive scaffolding with pretty much full retention." | **local first, OpenAI authorized**, one interface (§4.5); reading R2 unconfirmed |
+| D4 | Which revisions may apply automatically? | "I think we need to research that …" | **open**; nothing applies automatically meanwhile; [evidence packet](../research/d4-automatic-revisions.md) |
+| D5 | Does "family" mean model family? | "4, yes" | **confirmed** |
+| (existing) | Public port of the offline core + FTS5 to Cognitive-Scaffolding (pending since 2026-11-07). | | still pending; blocks the first build step |
+
+Readings for Zach to confirm:
+- **R1 (D2):** a Cell is `(m[i], m[i+1])`, sliding by one, with direction recorded. Yes / No / Adjust.
+- **R2 (D3):** "full retention" means Kairos keeps full text, vectors and provenance on its side; it says nothing about OpenAI's own retention. Yes / No / Adjust.
 
 ## 8. Dissent review (AGENTS.md Drift: this proposes a new subsystem)
 
 1. **Which purpose might this violate?** Anamnesis's purpose is recovering knowledge with provenance kept. A network that writes to memory could turn interpretation into adoption without anyone deciding.
 2. **Evidence for the concern:** the 2026-08 pipeline did exactly this: preserved bad claims faithfully [existing]. Background synthesis is the same pattern at larger scale, and runs unwatched.
-3. **Counter-evidence:** the design forbids generated text as evidence, makes the network propose-only, and lets only rule-based, reversible revisions apply automatically. The ledger is append-only, so a bad run can be rolled back.
+3. **Counter-evidence:** the design forbids generated text as evidence, makes the network propose-only, and (until D4 is answered) lets nothing apply automatically. The ledger is append-only, so a bad run can be rolled back.
 4. **If the concern is right:** Frames would drift from Zach's words while still looking sourced, because locators would point to evidence that supports a weaker reading. The provenance-precision and attribution tests (§5) are built to catch this; the Challenger exists for it.
 5. **What to test or decide:** run the Curator alone against fixtures F-00 and F-06 before any real data; measure false `core` promotions (target 0) and accepted-revision rate. D1 and D4 are Zach's.
 
