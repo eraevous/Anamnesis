@@ -58,13 +58,16 @@ These communities approve *a kind of edit*, not each edit.
 
    Automatically strengthening claims from the same conversations the model is shaping would risk a self-reinforcing loop.
 4. **Human review is not free.** Automation bias leads to missed errors and wrongly accepted suggestions, in experts as well as novices; training does not prevent it, and divided attention makes it worse ([Parasuraman & Manzey 2010](https://trid.trb.org/View/1085175)). A queue of every revision invites rubber-stamping.
-5. **In-place rewrites lose the audit trail.** A-MEM is the counter-example. Anamnesis's append-only ledger (R-MEM-2) already prevents this.
+5. **In-place rewrites lose the audit trail.** A-MEM is the counter-example. Anamnesis's append-only ledger (R-MEM-2) prevents the loss, but it does **not** by itself undo a bad job: rendering an earlier ledger revision also hides later valid work, and the current view still carries the bad change. Selective recovery has to be built (see §3 and §4).
 
 ## 3. What follows for Anamnesis
 
 - **"Whether" isn't all-or-nothing.** The products auto-apply everything. Wikipedia, Wikidata and OpenStreetMap auto-apply nothing until a *kind* of edit has passed a reviewed trial. The second model fits Anamnesis's purpose (provenance and Zach's authority) better.
 - **"Which" should be decided by edit type and the source of the input, not by model confidence.** Mechanical checks that never read meaning (a quote that no longer matches its source, a broken locator, a date that has passed) are the bot-policy "obvious typo" class. Revisions that interpret meaning (ADD, STRENGTHEN, SUPERSEDE from new conversation) are the class the poisoning and sycophancy results warn about.
-- **"When" is after a trial, per type, with a way back.** That means a tagged identity per job, a run record, and a one-step revert. Anamnesis gets the revert for free from the append-only ledger.
+- **"When" is after a trial, per type, with a way back.** That means a tagged identity per job, a run record, and a **selective revert**. The append-only ledger keeps history, but it gives only a time-travel view, not a revert. Before any type enters a trial, a revert-by-run operation must exist and be tested:
+  - it appends compensating revisions for exactly the revisions one run applied, leaving unrelated later revisions in place;
+  - it lists the claims that later revisions built on the reverted ones, and the Frames rendered from them, and marks them for re-check and re-render rather than silently keeping or dropping them;
+  - it passes a synthetic test: apply a bad run, then valid revisions from other runs, revert the bad run, and check that the valid ones survive and the dependants are flagged.
 
 ## 4. Recommendation (proposal; Zach decides)
 
@@ -74,7 +77,7 @@ Use a **graduated, per-revision-type ladder**. Each step requires Zach's explici
 |---|---|---|
 | 0. proposed (now) | Everything lands as `proposed`; Zach or a sampled review accepts it | default for every type |
 | 1. shadow | The job runs and records what it *would* apply; nothing changes; agreement with Zach's decisions is measured | a type is nominated |
-| 2. trial | A small batch (for example 25 to 50 revisions) is applied, tagged `mechanical=yes` and the job id, and Zach reviews all of it | shadow agreement high, zero harmful errors |
+| 2. trial | A small batch (for example 25 to 50 revisions) is applied, tagged `mechanical=yes` and the job id, and Zach reviews all of it | shadow agreement high, zero harmful errors, **and revert-by-run built and passing its test (§3)** |
 | 3. auto with audit | That type applies on its own; each run writes a run record; Zach sees a daily digest and reviews a random sample (say 1 in 10) | trial passed; Zach's yes for this type |
 | demote | Any harmful error returns the type to stage 1 | automatic |
 
@@ -94,7 +97,7 @@ The types that could ever reach stage 3 come from the first slice below; the res
 The guards hold regardless of stage:
 - Gate on the source of the input and on mechanical checks, never on a model's self-reported confidence.
 - One identity per job.
-- Rollback is a query, never a restore (R-MEM-2).
+- Rollback of a run is selective: compensating revisions for that run only, with dependants flagged (§3). Viewing the past is a query (R-MEM-2), but a past view is not a revert.
 - Keep the review queue small by sampling, so that review stays real.
 
 ## 5. What would change this recommendation

@@ -68,7 +68,7 @@ Design the store around the units Zach already defined [seed] rather than new on
 
 | unit [seed] | definition [seed] | storage form [proposed] |
 |---|---|---|
-| **Cell** | "An atomic interaction—one input (prompt) and one output (response)." | **Rolling Cell** (D2): `cell:<conversation>:<i>→<i+1>`, any two consecutive messages on one branch path, sliding by one, with `direction` (`human→model` or `model→human`), `platform` and `model`. Built over two **message units** (one message each [existing]). |
+| **Cell** | "An atomic interaction—one input (prompt) and one output (response)." | **Rolling Cell** (D2): `cell:<call_unit_id>→<response_unit_id>`, keyed by the two stable message-unit ids (positions `i`, `i+1` are kept for traversal only, since alternate replies share them), any two consecutive messages on one branch path, sliding by one, with `direction` (`human→model` or `model→human`), `platform` and `model`. Built over two **message units** (one message each [existing]). |
 | **Thread** | "A linear sequence of Cells forming a coherent dialogue or process." | one root-to-tip branch path through Cells |
 | **Fork / Branch / Node** | a new Thread from a Cell or Frame; a named fork; the forking Cell | from the export's `mapping`: alternates and edits already carry `branch_status` [existing]. A Node is a Cell with >1 child. |
 | **Frame** | "A bounded, context-rich memory object, composed of selected Cells and metadata." | the rendered memory objects of §1 (and saga chapters), always stamped with the ledger revision they came from |
@@ -80,7 +80,7 @@ How this note applies it (the coordinator's reading R1, **[unconfirmed reading]*
 
 - A Cell is the pair `(m[i], m[i+1])` along one branch path, sliding by one. Every message except a Thread's first and last is the response in one Cell and the call in the next, so a Thread of *n* messages has *n−1* Cells.
 - Each Cell records its `direction`: `human→model` (a model transforms Zach's text) or `model→human` (Zach transforms a model's text). A chain of Cells shows what passed from the initiating text into each reply, and who transformed it.
-- At a fork, the call message starts one Cell per child, so the Fork tree is a tree of Cells.
+- At a fork, the call message starts one Cell per child, so the Fork tree is a tree of Cells. Because the Cell id is the pair of message-unit ids, each alternate reply is its own Cell and a citation names the exact reply, as the branch-specific evidence contract requires [existing: segment note §3].
 - **The Cell is the evidence atom; quote spans stay inside one half.** A claim cites a Cell and a span in its call or its response, never a span across both. That keeps Zach's words separable from the reply [existing: gap 3 of the round-trip check] and keeps the quote guard per message.
 - Indexes (§4.2) can key on either: the Cell index embeds the pair; the user-only and reply-only indexes embed single messages. The synthetic probe (§4.5) builds rolling Cells and checks the *n−1* count and both directions.
 
@@ -110,7 +110,8 @@ The Challenger is the natural seat for the other model family (Kate's role in Ka
 
 - Each job run writes a **run record**: role, model, inputs (`ledger@n`, Cell range), outputs (revision ids), validator results, cost.
 - Discussions between roles are kept as artifacts of class `agent_discussion` (a kind of `generated_summary`): readable, linkable from a revision's rationale, never evidence.
-- **Auto-applied: nothing, until D4 is answered.** **[Zach]** "I think we need to research that because I don't have a clear answer on when, whether, and which revisions should apply automatically." Every revision, the Auditor's mechanical ones included, lands as `proposed` until a review rule accepts it. The evidence packet for that decision is [D4: automatic revisions](../research/d4-automatic-revisions.md); its recommendation is a proposal, not adopted.
+- **Auto-applied: nothing, until D4 is answered.** **[Zach]** "I think we need to research that because I don't have a clear answer on when, whether, and which revisions should apply automatically." Every revision, the Auditor's mechanical ones included, lands as `proposed` until a review rule accepts it.
+  - **This hold overrides the automatic application in the other notes.** Segment note §5 rule 6 (R-CLM-4) still requires the quote guard to *write* a `WEAKEN` revision rather than only report; on the memory ledger that revision is written as `proposed` and takes effect when accepted. Benchmark fixture F-05 is read the same way: it passes when each wrong claim has a `WEAKEN` or `MARK_CONFLICTING` revision recorded within one round, and fails if the guard only reports. Whether a synthetic test run may apply its own proposals in a throwaway ledger is part of D4 (**[proposed]**, not decided). The evidence packet for that decision is [D4: automatic revisions](../research/d4-automatic-revisions.md); its recommendation is a proposal, not adopted.
 - A network that runs and changes nothing on new evidence raises the `inert_recurrence` flag [existing].
 
 ## 4. The first run: a full Cognitive-Scaffolding pass (design, not authorized)

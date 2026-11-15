@@ -32,11 +32,17 @@ HERE = Path(__file__).resolve().parent
 @dataclass(frozen=True)
 class Message:
     conversation: str
-    index: int
+    index: int  # position on this branch path; for traversal only, never an id
     speaker: str  # "human" | "model"
     text: str
     platform: str
     model: str
+
+    @property
+    def unit_id(self) -> str:
+        # Stands in for the offline core's stable message_unit_id (the export's node id).
+        # The fixture has no forks, so conversation and position are unique here.
+        return f"mu:{self.conversation}:{self.index}"
 
 
 @dataclass(frozen=True)
@@ -49,7 +55,9 @@ class Cell:
 
     @property
     def id(self) -> str:
-        return f"cell:{self.conversation}:{self.call.index}->{self.response.index}"
+        # Keyed by the two message-unit ids, not positions: alternate replies to one call
+        # share positions but not unit ids, so a citation names the exact reply.
+        return f"cell:{self.call.unit_id}->{self.response.unit_id}"
 
     @property
     def direction(self) -> str:
@@ -99,12 +107,21 @@ class OpenAIEmbedder:
         self.model_id, self.dim = f"openai:{model}", dim
         self._model = model
 
+    def _payload(self, texts) -> dict:
+        body = {"model": self._model, "input": list(texts)}
+        # text-embedding-3 models accept `dimensions`; send it so vectors match self.dim.
+        if self._model.startswith("text-embedding-3"):
+            body["dimensions"] = self.dim
+        elif self.dim != 1536:
+            raise ValueError(f"{self._model} has a fixed size; dim={self.dim} is not supported")
+        return body
+
     def embed(self, texts):  # pragma: no cover - intentionally unused here
         import urllib.request
 
         req = urllib.request.Request(
             "https://api.openai.com/v1/embeddings",
-            data=json.dumps({"model": self._model, "input": list(texts)}).encode(),
+            data=json.dumps(self._payload(texts)).encode(),
             headers={
                 "Authorization": f"Bearer {os.environ['OPENAI_API_KEY']}",
                 "Content-Type": "application/json",
@@ -172,6 +189,9 @@ def main() -> int:
     dirs = sorted({c.direction for c in cells})
     assert n_cells == n_msgs - len(fx["conversations"])
     assert all(c.platform and c.model for c in cells)
+    assert len({c.id for c in cells}) == n_cells
+    probe = OpenAIEmbedder(dim=256)._payload(["x"])  # builds the request; sends nothing
+    assert probe["dimensions"] == 256
 
     emb: Embedder = LocalWordLlama()
     t0 = time.perf_counter()

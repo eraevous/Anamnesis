@@ -83,7 +83,7 @@ Each reproduces one failure from the thread [thread], in synthetic form, and nam
 - Synthetic setup: a round-0 ledger supplied as a fixture input (not generated), with 6 claims of which 3 are wrong: one cites an irrelevant passage (low overlap), one cites a quote that does not occur verbatim, one is contradicted by a later user statement in the corpus. Recurrence then has objectives that retrieve the contradicting statement.
 - Failure to reproduce: 6 claims in, 6 out, 0 revisions; guard findings reported but no downgrades.
 - Should be caught by: the quote guard writing `WEAKEN` revisions (design §5 rule 6) for the first two; `MARK_CONFLICTING` for the third; and, if a variant run disables the guard, the inert-recurrence flag (rule 8).
-- `must_not`: the three wrong claims still `EXPLICIT` after one round.
+- `must_not`: the three wrong claims still `EXPLICIT` after one round. While D4 is open (living-memory note §3), "no longer `EXPLICIT`" means a `WEAKEN` or `MARK_CONFLICTING` revision is recorded for each, as `proposed`; guard findings with no revision still fail.
 
 ### F-06: good baseline must survive (the reverse of F-05)
 
