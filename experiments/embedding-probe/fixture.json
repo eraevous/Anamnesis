@@ -1,0 +1,71 @@
+{
+  "note": "Synthetic conversations written for this probe. Nothing here comes from any real export or person.",
+  "conversations": [
+    {"id": "c1", "platform": "chatgpt", "model": "gpt-x", "messages": [
+      ["human", "I keep losing track of which pull requests are waiting on me. Can we make a single morning list?"],
+      ["model", "A daily sheet could group every ready PR into 'decide' and 'merge if you agree', with one line on what each changes."],
+      ["human", "Yes, and grey drafts should stay off it. I only look at green."],
+      ["model", "Then lanes mark finished work ready for review, and drafts mean an agent is still working."]
+    ]},
+    {"id": "c2", "platform": "claude", "model": "claude-y", "messages": [
+      ["human", "The sourdough starter smelled like nail polish remover this morning."],
+      ["model", "An acetone smell usually means the starter is hungry. Feed it more often or at a higher ratio of flour."],
+      ["human", "I fed it twice and the smell went away, so the hunger theory held."],
+      ["model", "Good. Keep the twice-daily feeding while the kitchen stays warm."]
+    ]},
+    {"id": "c3", "platform": "chatgpt", "model": "gpt-x", "messages": [
+      ["human", "Should branches stack on top of unmerged branches?"],
+      ["model", "Stacking lets work continue, but a rejected base forces every branch above it to be rebuilt."],
+      ["human", "Then no stacking. Always branch from main and wait if you depend on something unmerged."],
+      ["model", "Understood: every branch starts from the default branch."]
+    ]},
+    {"id": "c4", "platform": "claude", "model": "claude-y", "messages": [
+      ["human", "Planning the trip to Lisbon in March; I want two days for the tile museum and the tram."],
+      ["model", "The Azulejo museum is closed on Mondays, so put it on a Tuesday. Tram 28 is busiest mid-morning."],
+      ["human", "Trip moved to May because of the conference."],
+      ["model", "May is warmer and the jacaranda trees bloom late in the month."]
+    ]},
+    {"id": "c5", "platform": "chatgpt", "model": "gpt-x", "messages": [
+      ["human", "How should memory facts age? A plan becomes a past event at some point."],
+      ["model", "Keep a tense on each claim: planned, ongoing, done or lapsed. A passed date without evidence becomes lapsed, never done."],
+      ["human", "I like lapsed. Never silently assume something happened."],
+      ["model", "Then aging is always a recorded revision citing either new evidence or the passed date."]
+    ]},
+    {"id": "c6", "platform": "claude", "model": "claude-y", "messages": [
+      ["human", "My knee aches after long runs on concrete."],
+      ["model", "Softer surfaces and a shorter long run for two weeks are a common first step; see a physiotherapist if it persists."],
+      ["human", "Switched to the gravel trail and the ache faded."],
+      ["model", "Keep the gravel trail for the long runs and build distance slowly."]
+    ]},
+    {"id": "c7", "platform": "chatgpt", "model": "gpt-x", "messages": [
+      ["human", "Paste from the other thread: 'Stacking lets work continue, but a rejected base forces every branch above it to be rebuilt.' Is that still our view?"],
+      ["model", "Yes. That reasoning led to the no-stacking rule: branch from main."],
+      ["human", "Good. Also the reviewer from the other model family should check claims, not the one who proposed them."],
+      ["model", "A challenger from a different family reduces the chance that one model's blind spot confirms itself."]
+    ]},
+    {"id": "c8", "platform": "claude", "model": "claude-y", "messages": [
+      ["human", "Which embedding should Anamnesis use, a local model or a provider?"],
+      ["model", "Test a local model first and keep a provider behind the same interface, recording the model id on every vector."],
+      ["human", "Agreed. Store the text, vectors and provenance on our side."],
+      ["model", "Then a re-embed with a new model becomes a new index rather than an overwrite."]
+    ]}
+  ],
+  "queries": [
+    {"q": "where did we agree on a daily list of PRs needing a decision", "gold": "c1"},
+    {"q": "Zach ignores draft pull requests and only reads ready ones", "gold": "c1"},
+    {"q": "starter smells of acetone", "gold": "c2"},
+    {"q": "bread culture had a chemical odour and needed feeding", "gold": "c2"},
+    {"q": "rule against building branches on unmerged work", "gold": "c3"},
+    {"q": "why depending on an unaccepted base branch is risky", "gold": "c3"},
+    {"q": "Portugal holiday rescheduled", "gold": "c4"},
+    {"q": "Azulejo museum opening days", "gold": "c4"},
+    {"q": "a plan whose date passed should not be marked as finished", "gold": "c5"},
+    {"q": "how facts about the future turn into facts about the past", "gold": "c5"},
+    {"q": "joint pain after running on hard pavement", "gold": "c6"},
+    {"q": "moving runs to a softer trail helped", "gold": "c6"},
+    {"q": "text copied between conversations about stacking", "gold": "c7"},
+    {"q": "a different AI vendor should verify claims", "gold": "c7"},
+    {"q": "local vectors versus a hosted API for semantic search", "gold": "c8"},
+    {"q": "re-embedding creates a new index", "gold": "c8"}
+  ]
+}
