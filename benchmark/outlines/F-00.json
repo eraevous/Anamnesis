@@ -1,0 +1,388 @@
+{
+  "id": "F-00",
+  "name": "the buried branch",
+  "conversation_id": "conv_synth_f00",
+  "title": "Fixing the garden irrigation timer",
+  "start_time": 1800000000,
+  "model": "synthetic-model",
+  "readme": [
+    "Synthetic analogue of the kind of case Zach described: a conversation whose title and dominant topic are unrelated to a valuable conceptual branch. All text is invented for this repo.",
+    "Dominant topic: 40 turns on a drip line, a valve schedule and a leaking connector.",
+    "Buried branch: turns 17-23. The user defines an idea (U-19), the assistant extends it (A-20), the user accepts part and rejects the rest (U-21), and the user names it (U-23).",
+    "Second island: turns 34-35, where the user refers back to the named idea. It must come back as its own segment.",
+    "Distractors: 'routing' in the plumbing sense at U-5 and A-28. They should anchor on lexical search and be placed adjacency.",
+    "Alternate: A-20' is a regenerated-away sibling of A-20 proposing a different name. Its unique text must be findable as an alternate and never merged into the active-branch segment.",
+    "Design rules exercised: segment-retrieval note sections 3.2-3.5 (anchors, boundaries, distinctness) and the fixture plan's F-00 scores."
+  ],
+  "turns": [
+    [
+      "U-1",
+      "My garden irrigation timer stopped running the morning cycle. Where should I start?"
+    ],
+    [
+      "A-2",
+      "Start with power and the clock: check the battery, then confirm the timer's date and program are still set."
+    ],
+    [
+      "U-3",
+      "Battery is new and the clock is right. Program A says 6:00 for zones 1 to 3."
+    ],
+    [
+      "A-4",
+      "Then check whether the valves get the signal. Run zone 1 manually and listen for the solenoid click."
+    ],
+    [
+      "U-5",
+      "Zone 1 clicks. I think the problem is the routing of the drip line past the shed, it bends twice."
+    ],
+    [
+      "A-6",
+      "Two bends are fine for half-inch drip tubing. A sharp kink is not. Is the line flattened anywhere?"
+    ],
+    [
+      "U-7",
+      "No kinks. Pressure at the far emitters is weak though."
+    ],
+    [
+      "A-8",
+      "Weak far-end pressure usually means a leak upstream or too many emitters on one zone."
+    ],
+    [
+      "U-9",
+      "There are about 40 emitters on zone 2. The connector at the tee drips constantly."
+    ],
+    [
+      "A-10",
+      "Forty two-litre emitters is within range for most zones. Fix the dripping tee first, it may be stealing the pressure."
+    ],
+    [
+      "U-11",
+      "The tee is a compression fitting. Do I cut the tube back?"
+    ],
+    [
+      "A-12",
+      "Yes. Cut a clean square end about two centimetres back and push it fully into the fitting."
+    ],
+    [
+      "U-13",
+      "Done. The drip stopped. Far emitters are better but still uneven."
+    ],
+    [
+      "A-14",
+      "Uneven flow on a long run is normal on slopes. Pressure-compensating emitters even it out."
+    ],
+    [
+      "U-15",
+      "The bed slopes toward the fence. I'll swap the last ten emitters."
+    ],
+    [
+      "A-16",
+      "Good plan. Put the compensating ones at the high end."
+    ],
+    [
+      "U-17",
+      "Watching the water today I noticed it finds paths nobody planned. It pools where the soil is soft, not where I laid the line."
+    ],
+    [
+      "A-18",
+      "Water follows the least resistance, so the soil decides more than the layout does."
+    ],
+    [
+      "U-19",
+      "That's how work moves in a team's task queue too. I'd define emergent routing as tasks flowing to whoever has the least resistance right now, not to the person the plan assigned."
+    ],
+    [
+      "A-20",
+      "You could extend emergent routing in two ways: let the queue reassign tasks automatically by measured load, and publish a daily map of where tasks actually flowed."
+    ],
+    [
+      "U-21",
+      "Keep the daily flow map, that is useful. No automatic reassignment: people should still choose, the routing has to stay emergent."
+    ],
+    [
+      "A-22",
+      "So the map shows the paths and people keep the choice. The routing is observed, not imposed."
+    ],
+    [
+      "U-23",
+      "Yes. I'll call it seepage routing: the task queue as soil, the team as water."
+    ],
+    [
+      "A-24",
+      "Noted. Back to the bed: do you want a second zone for the slope?"
+    ],
+    [
+      "U-25",
+      "Maybe. What would a second zone need?"
+    ],
+    [
+      "A-26",
+      "A second valve on the manifold, a wire to a free station on the timer, and a new program line."
+    ],
+    [
+      "U-27",
+      "The timer has two free stations. How do I plan the tubing?"
+    ],
+    [
+      "A-28",
+      "Plan the routing of the new line along the fence and keep the run under thirty metres, so the pressure holds at the far end."
+    ],
+    [
+      "U-29",
+      "Thirty metres is plenty. Which valve size?"
+    ],
+    [
+      "A-30",
+      "Three-quarter-inch matches your manifold. Use the same brand so the solenoids interchange."
+    ],
+    [
+      "U-31",
+      "Bought it. The timer needs a program for zone 4 now."
+    ],
+    [
+      "A-32",
+      "Program B at 6:30 for zone 4, twenty minutes, so it does not overlap zones 1 to 3."
+    ],
+    [
+      "U-33",
+      "Set. It feels like the schedule should adapt to the weather on its own."
+    ],
+    [
+      "A-34",
+      "A rain sensor can skip cycles. Do you want the schedule to adjust itself beyond that?"
+    ],
+    [
+      "U-35",
+      "No, same principle as seepage routing: show me where the water went and I decide the changes."
+    ],
+    [
+      "A-36",
+      "Then a soil-moisture readout per zone gives you the map without automatic changes."
+    ],
+    [
+      "U-37",
+      "Good. Anything else to check on the new valve?"
+    ],
+    [
+      "A-38",
+      "Check the solenoid wire nuts are waterproof and the valve box drains."
+    ],
+    [
+      "U-39",
+      "Wire nuts are gel-filled. The box sits on gravel."
+    ],
+    [
+      "A-40",
+      "Then the system is in good shape. Run each zone once and watch the far emitters."
+    ]
+  ],
+  "alternates": [
+    {
+      "label": "A-20'",
+      "sibling_of": "A-20",
+      "text": "One extension would be to treat it as a gradient ledger: score every person by current friction and give each new task to the lowest score."
+    }
+  ],
+  "gold": {
+    "objectives": [
+      {
+        "id": "O-1",
+        "kind": "find_concept",
+        "query": "emergent routing in a task queue"
+      },
+      {
+        "id": "O-2",
+        "kind": "find_alternate",
+        "query": "gradient ledger friction score"
+      }
+    ],
+    "anchors": {
+      "O-1": [
+        "U-19",
+        "A-20",
+        "U-21",
+        "A-22",
+        "U-23",
+        "U-35"
+      ],
+      "O-2": [
+        "A-20'"
+      ]
+    },
+    "islands": [
+      {
+        "id": "I-1",
+        "branch": "active",
+        "first": "U-17",
+        "last": "U-23",
+        "placement": "core"
+      },
+      {
+        "id": "I-2",
+        "branch": "active",
+        "first": "A-34",
+        "last": "U-35",
+        "placement": "core"
+      },
+      {
+        "id": "I-D1",
+        "branch": "active",
+        "first": "U-5",
+        "last": "U-5",
+        "placement": "adjacency"
+      },
+      {
+        "id": "I-D2",
+        "branch": "active",
+        "first": "A-28",
+        "last": "A-28",
+        "placement": "adjacency"
+      }
+    ],
+    "alternate_units": {
+      "A-20'": "alternate"
+    },
+    "evidence": [
+      {
+        "unit": "U-19",
+        "quote": "I'd define emergent routing as tasks flowing to whoever has the least resistance right now, not to the person the plan assigned.",
+        "speaker": "user",
+        "artifact_class": "user_statement",
+        "local_stance": "asserts",
+        "canonical_eligibility": "eligible"
+      },
+      {
+        "unit": "A-20",
+        "quote": "publish a daily map of where tasks actually flowed",
+        "speaker": "assistant",
+        "artifact_class": "assistant_reply",
+        "local_stance": "proposes",
+        "canonical_eligibility": "eligible",
+        "acceptance_status": "accepted",
+        "acceptance_unit": "U-21"
+      },
+      {
+        "unit": "A-20",
+        "quote": "let the queue reassign tasks automatically by measured load",
+        "speaker": "assistant",
+        "artifact_class": "assistant_reply",
+        "local_stance": "proposes",
+        "canonical_eligibility": "ineligible:rejected",
+        "acceptance_status": "rejected",
+        "acceptance_unit": "U-21"
+      },
+      {
+        "unit": "U-21",
+        "quote": "Keep the daily flow map, that is useful.",
+        "speaker": "user",
+        "artifact_class": "user_statement",
+        "local_stance": "asserts",
+        "canonical_eligibility": "eligible"
+      },
+      {
+        "unit": "U-21",
+        "quote": "No automatic reassignment: people should still choose",
+        "speaker": "user",
+        "artifact_class": "user_statement",
+        "local_stance": "rejects",
+        "canonical_eligibility": "eligible"
+      },
+      {
+        "unit": "U-23",
+        "quote": "I'll call it seepage routing",
+        "speaker": "user",
+        "artifact_class": "user_statement",
+        "local_stance": "asserts",
+        "canonical_eligibility": "eligible"
+      },
+      {
+        "unit": "A-20'",
+        "quote": "gradient ledger",
+        "speaker": "assistant",
+        "artifact_class": "assistant_reply",
+        "local_stance": "proposes",
+        "canonical_eligibility": "ineligible:alternate_branch",
+        "acceptance_status": "unreviewed"
+      }
+    ],
+    "claims": [
+      {
+        "id": "C-1",
+        "status": "EXPLICIT",
+        "placement": "core",
+        "text": "Emergent routing means tasks flow to whoever has the least resistance now, not to whoever the plan assigned.",
+        "support": [
+          "U-19"
+        ]
+      },
+      {
+        "id": "C-2",
+        "status": "EXPLICIT",
+        "placement": "core",
+        "text": "The idea is named seepage routing.",
+        "support": [
+          "U-23"
+        ]
+      },
+      {
+        "id": "C-3",
+        "status": "EXPLICIT",
+        "placement": "core",
+        "text": "A daily map of where tasks actually flowed is kept.",
+        "support": [
+          "A-20",
+          "U-21"
+        ]
+      },
+      {
+        "id": "C-4",
+        "status": "EXPLICIT",
+        "placement": "core",
+        "text": "Tasks are not reassigned automatically; people keep the choice.",
+        "support": [
+          "U-21"
+        ]
+      }
+    ],
+    "must_not": [
+      {
+        "kind": "claim",
+        "text": "The queue reassigns tasks automatically by measured load.",
+        "why": "rejected part of A-20 (U-21)"
+      },
+      {
+        "kind": "claim",
+        "text": "The idea is named gradient ledger.",
+        "why": "only in the regenerated-away alternate A-20'"
+      },
+      {
+        "kind": "merge",
+        "islands": [
+          "I-1",
+          "I-2"
+        ],
+        "why": "two islands in one conversation stay separate segments"
+      },
+      {
+        "kind": "merge",
+        "units": [
+          "A-20'",
+          "A-20"
+        ],
+        "why": "an alternate never joins an active-branch segment"
+      },
+      {
+        "kind": "placement",
+        "island": "I-D1",
+        "not": "core",
+        "why": "plumbing sense of 'routing'"
+      },
+      {
+        "kind": "placement",
+        "island": "I-D2",
+        "not": "core",
+        "why": "plumbing sense of 'routing'"
+      }
+    ]
+  }
+}

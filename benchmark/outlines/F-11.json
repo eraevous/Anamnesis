@@ -1,0 +1,29 @@
+{
+  "extends": "F-10",
+  "id": "F-11",
+  "name": "alternate-only text is findable and labelled",
+  "readme": [
+    "Ported from the stage-4 gap probes in the private round-trip check, keeping its synthetic text. Same conversation as F-10.",
+    "F-11: wording that occurs only on an alternate branch (the edited-away U-3' and the regenerated-away A-4') must be searchable, and each hit must be labelled alternate, never active.",
+    "'agreed' and 'maybe' occur nowhere on the active path; the test suite checks that mechanically."
+  ],
+  "gold": {
+    "objectives": [
+      {"id": "O-1", "kind": "find_alternate", "query": "zephyrine backup agreed"},
+      {"id": "O-2", "kind": "find_alternate", "query": "maybe a bucket"}
+    ],
+    "anchors": {"O-1": ["A-4'"], "O-2": ["U-3'"]},
+    "islands": [],
+    "alternate_units": {"U-3'": "alternate", "A-4'": "alternate"},
+    "alternate_only_terms": {"O-1": ["agreed"], "O-2": ["maybe"]},
+    "checks": [
+      {"kind": "alternate_findable", "objective": "O-1", "why": "regenerated-away reply text is indexed"},
+      {"kind": "alternate_findable", "objective": "O-2", "why": "edited-away user text is indexed"}
+    ],
+    "must_not": [
+      {"kind": "claim", "text": "The zephyrine backup is agreed.", "why": "only in the regenerated-away A-4'; the active path leaves it unresolved (U-5, A-6)"},
+      {"kind": "label", "unit": "A-4'", "not": "active", "why": "alternate units are never labelled active"},
+      {"kind": "label", "unit": "U-3'", "not": "active", "why": "alternate units are never labelled active"}
+    ]
+  }
+}

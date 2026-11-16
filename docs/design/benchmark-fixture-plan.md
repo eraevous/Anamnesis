@@ -108,4 +108,6 @@ These already exist as gap probes in the private round-trip check (`roundtrip_ch
 3. F-01 to F-06.
 4. Only then any model-driven stage (distillation, placement), scored layer by layer.
 
+**Build status (2026-11-16, HO-ANA-20261116-CFNM):** step 1 is built: `benchmark/fixturegen.py` (outline to fixture), `benchmark/gold_schema.py` (gold validation, schema `anamnesis.fixture-gold.v1`), and fixtures F-00, F-00b, F-10, F-11 and F-12 under `fixtures/`, tested in `tests/test_fixtures.py`. Not yet built: step 0's naive baseline and any scoring, both of which run retrieval and so consume the rescued core's message units; they wait on the offline-core port (living-memory note section 7). Not covered by the tests: whether the gold labels are right (a review question; F-01 to F-05 still need one blind author).
+
 Step 2 is the stop point the dissent review names: if the validators can't be made to fail and then pass the regression fixtures, revisit the design before building further.

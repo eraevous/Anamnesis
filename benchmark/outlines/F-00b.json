@@ -1,0 +1,242 @@
+{
+  "extends": "F-00",
+  "id": "F-00b",
+  "name": "the buried branch with no shared words",
+  "conversation_id": "conv_synth_f00b",
+  "readme": [
+    "Same shape as F-00, but the buried branch (turns 17-23) and the back-reference (U-35) never use the seed query's terms. The user talks about how the work finds its own way through the team and names the idea with an invented word.",
+    "Lexical-only anchor discovery is expected to FAIL this fixture: the only units sharing the query's surface terms are the plumbing distractors U-5 and A-28. The failure is recorded in gold.json under expected_failures, so it marks where a semantic or term-expansion anchor source has to earn its place.",
+    "The test suite checks the no-shared-terms property mechanically, so an edit to the outline cannot quietly make the fixture easy."
+  ],
+  "replace_turns": {
+    "U-19": "That's how the work finds its own way through the team too. Jobs drift to whoever is least stuck right now, not to whoever the plan named.",
+    "A-20": "You could take that further in two ways: let the system hand jobs over automatically by measured load, and publish a daily map of where the jobs actually drifted.",
+    "U-21": "Keep the daily drift map, that is useful. No automatic hand-over: people should still choose, or the drift stops being natural.",
+    "A-22": "So the map shows the paths and people keep the choice. The drift is observed, not imposed.",
+    "U-23": "Yes. I'll call it quellow: the work as water, the team as soil.",
+    "U-35": "No, same principle as quellow: show me where the water went and I decide the changes."
+  },
+  "alternates": [
+    {
+      "label": "A-20'",
+      "sibling_of": "A-20",
+      "text": "One step further would be a gradient ledger: score every person by current friction and give each new job to the lowest score."
+    }
+  ],
+  "gold": {
+    "objectives": [
+      {
+        "id": "O-1",
+        "kind": "find_concept",
+        "query": "emergent routing in a task queue"
+      },
+      {
+        "id": "O-2",
+        "kind": "find_alternate",
+        "query": "gradient ledger friction score"
+      }
+    ],
+    "anchors": {
+      "O-1": [
+        "U-19",
+        "A-20",
+        "U-21",
+        "A-22",
+        "U-23",
+        "U-35"
+      ],
+      "O-2": [
+        "A-20'"
+      ]
+    },
+    "islands": [
+      {
+        "id": "I-1",
+        "branch": "active",
+        "first": "U-17",
+        "last": "U-23",
+        "placement": "core"
+      },
+      {
+        "id": "I-2",
+        "branch": "active",
+        "first": "A-34",
+        "last": "U-35",
+        "placement": "core"
+      },
+      {
+        "id": "I-D1",
+        "branch": "active",
+        "first": "U-5",
+        "last": "U-5",
+        "placement": "adjacency"
+      },
+      {
+        "id": "I-D2",
+        "branch": "active",
+        "first": "A-28",
+        "last": "A-28",
+        "placement": "adjacency"
+      }
+    ],
+    "alternate_units": {
+      "A-20'": "alternate"
+    },
+    "no_shared_terms": {
+      "objective": "O-1",
+      "islands": [
+        "I-1",
+        "I-2"
+      ]
+    },
+    "expected_failures": [
+      {
+        "method": "lexical_only",
+        "objective": "O-1",
+        "why": "the target islands share no surface terms with the query; only the plumbing distractors do"
+      }
+    ],
+    "evidence": [
+      {
+        "unit": "U-19",
+        "quote": "Jobs drift to whoever is least stuck right now, not to whoever the plan named.",
+        "speaker": "user",
+        "artifact_class": "user_statement",
+        "local_stance": "asserts",
+        "canonical_eligibility": "eligible"
+      },
+      {
+        "unit": "A-20",
+        "quote": "publish a daily map of where the jobs actually drifted",
+        "speaker": "assistant",
+        "artifact_class": "assistant_reply",
+        "local_stance": "proposes",
+        "canonical_eligibility": "eligible",
+        "acceptance_status": "accepted",
+        "acceptance_unit": "U-21"
+      },
+      {
+        "unit": "A-20",
+        "quote": "let the system hand jobs over automatically by measured load",
+        "speaker": "assistant",
+        "artifact_class": "assistant_reply",
+        "local_stance": "proposes",
+        "canonical_eligibility": "ineligible:rejected",
+        "acceptance_status": "rejected",
+        "acceptance_unit": "U-21"
+      },
+      {
+        "unit": "U-21",
+        "quote": "Keep the daily drift map, that is useful.",
+        "speaker": "user",
+        "artifact_class": "user_statement",
+        "local_stance": "asserts",
+        "canonical_eligibility": "eligible"
+      },
+      {
+        "unit": "U-21",
+        "quote": "No automatic hand-over: people should still choose",
+        "speaker": "user",
+        "artifact_class": "user_statement",
+        "local_stance": "rejects",
+        "canonical_eligibility": "eligible"
+      },
+      {
+        "unit": "U-23",
+        "quote": "I'll call it quellow",
+        "speaker": "user",
+        "artifact_class": "user_statement",
+        "local_stance": "asserts",
+        "canonical_eligibility": "eligible"
+      },
+      {
+        "unit": "A-20'",
+        "quote": "gradient ledger",
+        "speaker": "assistant",
+        "artifact_class": "assistant_reply",
+        "local_stance": "proposes",
+        "canonical_eligibility": "ineligible:alternate_branch",
+        "acceptance_status": "unreviewed"
+      }
+    ],
+    "claims": [
+      {
+        "id": "C-1",
+        "status": "EXPLICIT",
+        "placement": "core",
+        "text": "Work drifts to whoever is least stuck now, not to whoever the plan named.",
+        "support": [
+          "U-19"
+        ]
+      },
+      {
+        "id": "C-2",
+        "status": "EXPLICIT",
+        "placement": "core",
+        "text": "The idea is named quellow.",
+        "support": [
+          "U-23"
+        ]
+      },
+      {
+        "id": "C-3",
+        "status": "EXPLICIT",
+        "placement": "core",
+        "text": "A daily map of where the jobs actually drifted is kept.",
+        "support": [
+          "A-20",
+          "U-21"
+        ]
+      },
+      {
+        "id": "C-4",
+        "status": "EXPLICIT",
+        "placement": "core",
+        "text": "Jobs are not handed over automatically; people keep the choice.",
+        "support": [
+          "U-21"
+        ]
+      }
+    ],
+    "must_not": [
+      {
+        "kind": "claim",
+        "text": "The system hands jobs over automatically by measured load.",
+        "why": "rejected part of A-20 (U-21)"
+      },
+      {
+        "kind": "claim",
+        "text": "The idea is named gradient ledger.",
+        "why": "only in the regenerated-away alternate A-20'"
+      },
+      {
+        "kind": "merge",
+        "islands": [
+          "I-1",
+          "I-2"
+        ],
+        "why": "two islands in one conversation stay separate segments"
+      },
+      {
+        "kind": "merge",
+        "units": [
+          "A-20'",
+          "A-20"
+        ],
+        "why": "an alternate never joins an active-branch segment"
+      },
+      {
+        "kind": "placement",
+        "island": "I-D1",
+        "not": "core",
+        "why": "plumbing sense of 'routing'"
+      },
+      {
+        "kind": "placement",
+        "island": "I-D2",
+        "not": "core",
+        "why": "plumbing sense of 'routing'"
+      }
+    ]
+  }
+}
