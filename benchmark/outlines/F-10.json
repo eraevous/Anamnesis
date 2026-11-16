@@ -1,0 +1,40 @@
+{
+  "id": "F-10",
+  "name": "a hit resolves to a message unit",
+  "conversation_id": "conv_synth_rt",
+  "title": "Synthetic round trip",
+  "start_time": 1800000000,
+  "model": "synthetic-model",
+  "readme": [
+    "Ported from the stage-4 gap probes in the private round-trip check (relay-kit-private kairos/research/anamnesis/roundtrip_check.py, 2026-11-09), keeping its synthetic text. Shared by F-10, F-11 and F-12; each has its own gold.",
+    "F-10: a lexical hit must cite a message unit (conversation id plus message id), not only a conversation.",
+    "The conversation has the four kinds of turn Kate asked for in that check: a statement, a model interpretation, a correction and an unresolved disagreement, plus an edited-away user turn (U-3') and a regenerated-away reply (A-4')."
+  ],
+  "turns": [
+    ["S-0", "Synthetic system prompt."],
+    ["U-1", "Statement: the quillfern archive stays on the laptop."],
+    ["A-2", "Interpretation: you want the quillfern archive mirrored to a cloud bucket nightly?"],
+    ["U-3", "Correction: no bucket, no mirror. Local only."],
+    ["A-4", "Understood: local only. I still suggest an encrypted zephyrine backup."],
+    ["U-5", "I disagree about the zephyrine backup. Leave it unresolved for now."],
+    ["A-6", "Noted: the backup question is open, not decided."]
+  ],
+  "alternates": [
+    {"label": "U-3'", "sibling_of": "U-3", "text": "Hmm, maybe a bucket is fine."},
+    {"label": "A-4'", "sibling_of": "A-4", "text": "Understood, and the zephyrine backup is agreed."}
+  ],
+  "gold": {
+    "objectives": [
+      {"id": "O-1", "kind": "find_unit", "query": "quillfern archive"}
+    ],
+    "anchors": {"O-1": ["U-1", "A-2"]},
+    "islands": [
+      {"id": "I-1", "branch": "active", "first": "U-1", "last": "A-2", "placement": "core"}
+    ],
+    "alternate_units": {"U-3'": "alternate", "A-4'": "alternate"},
+    "checks": [
+      {"kind": "hit_resolves_to_unit", "objective": "O-1", "why": "every hit carries a message_unit_id, not only a conversation id"}
+    ],
+    "must_not": []
+  }
+}

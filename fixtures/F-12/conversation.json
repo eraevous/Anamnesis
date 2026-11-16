@@ -1,0 +1,212 @@
+[
+  {
+    "create_time": 1800000000,
+    "current_node": "msg-f-12-a-6",
+    "id": "conv_synth_rt",
+    "mapping": {
+      "msg-f-12-a-2": {
+        "children": [
+          "msg-f-12-u-3",
+          "msg-f-12-u-3p"
+        ],
+        "id": "msg-f-12-a-2",
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Interpretation: you want the quillfern archive mirrored to a cloud bucket nightly?"
+            ]
+          },
+          "create_time": 1800000030,
+          "id": "msg-f-12-a-2",
+          "metadata": {
+            "model_slug": "synthetic-model"
+          }
+        },
+        "parent": "msg-f-12-u-1"
+      },
+      "msg-f-12-a-4": {
+        "children": [
+          "msg-f-12-u-5"
+        ],
+        "id": "msg-f-12-a-4",
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Understood: local only. I still suggest an encrypted zephyrine backup."
+            ]
+          },
+          "create_time": 1800000050,
+          "id": "msg-f-12-a-4",
+          "metadata": {
+            "model_slug": "synthetic-model"
+          }
+        },
+        "parent": "msg-f-12-u-3"
+      },
+      "msg-f-12-a-4p": {
+        "children": [],
+        "id": "msg-f-12-a-4p",
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Understood, and the zephyrine backup is agreed."
+            ]
+          },
+          "create_time": 1800000045,
+          "id": "msg-f-12-a-4p",
+          "metadata": {
+            "model_slug": "synthetic-model"
+          }
+        },
+        "parent": "msg-f-12-u-3"
+      },
+      "msg-f-12-a-6": {
+        "children": [],
+        "id": "msg-f-12-a-6",
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Noted: the backup question is open, not decided."
+            ]
+          },
+          "create_time": 1800000070,
+          "id": "msg-f-12-a-6",
+          "metadata": {
+            "model_slug": "synthetic-model"
+          }
+        },
+        "parent": "msg-f-12-u-5"
+      },
+      "msg-f-12-s-0": {
+        "children": [
+          "msg-f-12-u-1"
+        ],
+        "id": "msg-f-12-s-0",
+        "message": {
+          "author": {
+            "role": "system"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Synthetic system prompt."
+            ]
+          },
+          "create_time": 1800000010,
+          "id": "msg-f-12-s-0",
+          "metadata": {}
+        },
+        "parent": "root-f-12"
+      },
+      "msg-f-12-u-1": {
+        "children": [
+          "msg-f-12-a-2"
+        ],
+        "id": "msg-f-12-u-1",
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Statement: the quillfern archive stays on the laptop."
+            ]
+          },
+          "create_time": 1800000020,
+          "id": "msg-f-12-u-1",
+          "metadata": {}
+        },
+        "parent": "msg-f-12-s-0"
+      },
+      "msg-f-12-u-3": {
+        "children": [
+          "msg-f-12-a-4",
+          "msg-f-12-a-4p"
+        ],
+        "id": "msg-f-12-u-3",
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Correction: no bucket, no mirror. Local only."
+            ]
+          },
+          "create_time": 1800000040,
+          "id": "msg-f-12-u-3",
+          "metadata": {}
+        },
+        "parent": "msg-f-12-a-2"
+      },
+      "msg-f-12-u-3p": {
+        "children": [],
+        "id": "msg-f-12-u-3p",
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Hmm, maybe a bucket is fine."
+            ]
+          },
+          "create_time": 1800000035,
+          "id": "msg-f-12-u-3p",
+          "metadata": {}
+        },
+        "parent": "msg-f-12-a-2"
+      },
+      "msg-f-12-u-5": {
+        "children": [
+          "msg-f-12-a-6"
+        ],
+        "id": "msg-f-12-u-5",
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "I disagree about the zephyrine backup. Leave it unresolved for now."
+            ]
+          },
+          "create_time": 1800000060,
+          "id": "msg-f-12-u-5",
+          "metadata": {}
+        },
+        "parent": "msg-f-12-a-4"
+      },
+      "root-f-12": {
+        "children": [
+          "msg-f-12-s-0"
+        ],
+        "id": "root-f-12",
+        "message": null,
+        "parent": null
+      }
+    },
+    "title": "Synthetic round trip",
+    "update_time": 1800000070
+  }
+]

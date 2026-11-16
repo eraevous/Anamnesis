@@ -1,0 +1,90 @@
+{
+  "active_path": [
+    "chatgpt-message:conv_synth_rt:msg-f-11-s-0",
+    "chatgpt-message:conv_synth_rt:msg-f-11-u-1",
+    "chatgpt-message:conv_synth_rt:msg-f-11-a-2",
+    "chatgpt-message:conv_synth_rt:msg-f-11-u-3",
+    "chatgpt-message:conv_synth_rt:msg-f-11-a-4",
+    "chatgpt-message:conv_synth_rt:msg-f-11-u-5",
+    "chatgpt-message:conv_synth_rt:msg-f-11-a-6"
+  ],
+  "alternate_only_terms": {
+    "O-1": [
+      "agreed"
+    ],
+    "O-2": [
+      "maybe"
+    ]
+  },
+  "alternate_units": {
+    "chatgpt-message:conv_synth_rt:msg-f-11-a-4p": "alternate",
+    "chatgpt-message:conv_synth_rt:msg-f-11-u-3p": "alternate"
+  },
+  "anchors": {
+    "O-1": [
+      "chatgpt-message:conv_synth_rt:msg-f-11-a-4p"
+    ],
+    "O-2": [
+      "chatgpt-message:conv_synth_rt:msg-f-11-u-3p"
+    ]
+  },
+  "checks": [
+    {
+      "kind": "alternate_findable",
+      "objective": "O-1",
+      "why": "regenerated-away reply text is indexed"
+    },
+    {
+      "kind": "alternate_findable",
+      "objective": "O-2",
+      "why": "edited-away user text is indexed"
+    }
+  ],
+  "conversation_id": "conv_synth_rt",
+  "fixture": "F-11",
+  "islands": [],
+  "labels": {
+    "A-2": "chatgpt-message:conv_synth_rt:msg-f-11-a-2",
+    "A-4": "chatgpt-message:conv_synth_rt:msg-f-11-a-4",
+    "A-4'": "chatgpt-message:conv_synth_rt:msg-f-11-a-4p",
+    "A-6": "chatgpt-message:conv_synth_rt:msg-f-11-a-6",
+    "S-0": "chatgpt-message:conv_synth_rt:msg-f-11-s-0",
+    "U-1": "chatgpt-message:conv_synth_rt:msg-f-11-u-1",
+    "U-3": "chatgpt-message:conv_synth_rt:msg-f-11-u-3",
+    "U-3'": "chatgpt-message:conv_synth_rt:msg-f-11-u-3p",
+    "U-5": "chatgpt-message:conv_synth_rt:msg-f-11-u-5"
+  },
+  "must_not": [
+    {
+      "kind": "claim",
+      "text": "The zephyrine backup is agreed.",
+      "why": "only in the regenerated-away A-4'; the active path leaves it unresolved (U-5, A-6)"
+    },
+    {
+      "kind": "label",
+      "not": "active",
+      "unit": "chatgpt-message:conv_synth_rt:msg-f-11-a-4p",
+      "why": "alternate units are never labelled active"
+    },
+    {
+      "kind": "label",
+      "not": "active",
+      "unit": "chatgpt-message:conv_synth_rt:msg-f-11-u-3p",
+      "why": "alternate units are never labelled active"
+    }
+  ],
+  "name": "alternate-only text is findable and labelled",
+  "objectives": [
+    {
+      "id": "O-1",
+      "kind": "find_alternate",
+      "query": "zephyrine backup agreed"
+    },
+    {
+      "id": "O-2",
+      "kind": "find_alternate",
+      "query": "maybe a bucket"
+    }
+  ],
+  "schema": "anamnesis.fixture-gold.v1"
+}

@@ -1,0 +1,93 @@
+{
+  "extends": "F-10",
+  "id": "F-12",
+  "name": "no evidence link or snippet spans two speakers",
+  "readme": [
+    "Ported from the stage-4 gap probes in the private round-trip check, keeping its synthetic text. Same conversation as F-10.",
+    "F-12: 'zephyrine backup' occurs in an assistant turn (A-4) and the next user turn (U-5). Each hit's snippet and evidence link must stay inside one message unit, so a quote can never join the assistant's suggestion to the user's disagreement."
+  ],
+  "gold": {
+    "objectives": [
+      {
+        "id": "O-1",
+        "kind": "find_unit",
+        "query": "zephyrine backup"
+      }
+    ],
+    "anchors": {
+      "O-1": [
+        "A-4",
+        "U-5"
+      ]
+    },
+    "islands": [
+      {
+        "id": "I-1",
+        "branch": "active",
+        "first": "A-4",
+        "last": "A-6",
+        "placement": "conflict"
+      }
+    ],
+    "alternate_units": {
+      "U-3'": "alternate",
+      "A-4'": "alternate"
+    },
+    "checks": [
+      {
+        "kind": "snippet_single_unit",
+        "objective": "O-1",
+        "why": "a snippet or evidence link never spans two messages or two speakers"
+      }
+    ],
+    "evidence": [
+      {
+        "id": "E-1",
+        "unit": "A-4",
+        "quote": "I still suggest an encrypted zephyrine backup.",
+        "speaker": "assistant",
+        "artifact_class": "assistant_reply",
+        "local_stance": "proposes",
+        "canonical_eligibility": "ineligible:rejected",
+        "acceptance_status": "rejected",
+        "acceptance_unit": "U-5"
+      },
+      {
+        "id": "E-2",
+        "unit": "U-5",
+        "quote": "I disagree about the zephyrine backup. Leave it unresolved for now.",
+        "speaker": "user",
+        "artifact_class": "user_statement",
+        "local_stance": "rejects",
+        "canonical_eligibility": "eligible"
+      }
+    ],
+    "claims": [
+      {
+        "id": "C-1",
+        "status": "UNRESOLVED",
+        "placement": "conflict",
+        "text": "Whether to keep an encrypted zephyrine backup is open.",
+        "support": [
+          "E-1",
+          "E-2"
+        ]
+      }
+    ],
+    "must_not": [
+      {
+        "kind": "quote_span",
+        "units": [
+          "A-4",
+          "U-5"
+        ],
+        "why": "a quote crossing two speakers"
+      },
+      {
+        "kind": "claim",
+        "text": "The zephyrine backup is agreed.",
+        "why": "only in the regenerated-away A-4'"
+      }
+    ]
+  }
+}

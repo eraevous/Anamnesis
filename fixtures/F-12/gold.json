@@ -1,0 +1,108 @@
+{
+  "active_path": [
+    "chatgpt-message:conv_synth_rt:msg-f-12-s-0",
+    "chatgpt-message:conv_synth_rt:msg-f-12-u-1",
+    "chatgpt-message:conv_synth_rt:msg-f-12-a-2",
+    "chatgpt-message:conv_synth_rt:msg-f-12-u-3",
+    "chatgpt-message:conv_synth_rt:msg-f-12-a-4",
+    "chatgpt-message:conv_synth_rt:msg-f-12-u-5",
+    "chatgpt-message:conv_synth_rt:msg-f-12-a-6"
+  ],
+  "alternate_units": {
+    "chatgpt-message:conv_synth_rt:msg-f-12-a-4p": "alternate",
+    "chatgpt-message:conv_synth_rt:msg-f-12-u-3p": "alternate"
+  },
+  "anchors": {
+    "O-1": [
+      "chatgpt-message:conv_synth_rt:msg-f-12-a-4",
+      "chatgpt-message:conv_synth_rt:msg-f-12-u-5"
+    ]
+  },
+  "checks": [
+    {
+      "kind": "snippet_single_unit",
+      "objective": "O-1",
+      "why": "a snippet or evidence link never spans two messages or two speakers"
+    }
+  ],
+  "claims": [
+    {
+      "id": "C-1",
+      "placement": "conflict",
+      "status": "UNRESOLVED",
+      "support": [
+        "E-1",
+        "E-2"
+      ],
+      "text": "Whether to keep an encrypted zephyrine backup is open."
+    }
+  ],
+  "conversation_id": "conv_synth_rt",
+  "evidence": [
+    {
+      "acceptance_status": "rejected",
+      "acceptance_unit": "chatgpt-message:conv_synth_rt:msg-f-12-u-5",
+      "artifact_class": "assistant_reply",
+      "canonical_eligibility": "ineligible:rejected",
+      "id": "E-1",
+      "local_stance": "proposes",
+      "quote": "I still suggest an encrypted zephyrine backup.",
+      "speaker": "assistant",
+      "unit": "chatgpt-message:conv_synth_rt:msg-f-12-a-4"
+    },
+    {
+      "artifact_class": "user_statement",
+      "canonical_eligibility": "eligible",
+      "id": "E-2",
+      "local_stance": "rejects",
+      "quote": "I disagree about the zephyrine backup. Leave it unresolved for now.",
+      "speaker": "user",
+      "unit": "chatgpt-message:conv_synth_rt:msg-f-12-u-5"
+    }
+  ],
+  "fixture": "F-12",
+  "islands": [
+    {
+      "branch": "active",
+      "first": "chatgpt-message:conv_synth_rt:msg-f-12-a-4",
+      "id": "I-1",
+      "last": "chatgpt-message:conv_synth_rt:msg-f-12-a-6",
+      "placement": "conflict"
+    }
+  ],
+  "labels": {
+    "A-2": "chatgpt-message:conv_synth_rt:msg-f-12-a-2",
+    "A-4": "chatgpt-message:conv_synth_rt:msg-f-12-a-4",
+    "A-4'": "chatgpt-message:conv_synth_rt:msg-f-12-a-4p",
+    "A-6": "chatgpt-message:conv_synth_rt:msg-f-12-a-6",
+    "S-0": "chatgpt-message:conv_synth_rt:msg-f-12-s-0",
+    "U-1": "chatgpt-message:conv_synth_rt:msg-f-12-u-1",
+    "U-3": "chatgpt-message:conv_synth_rt:msg-f-12-u-3",
+    "U-3'": "chatgpt-message:conv_synth_rt:msg-f-12-u-3p",
+    "U-5": "chatgpt-message:conv_synth_rt:msg-f-12-u-5"
+  },
+  "must_not": [
+    {
+      "kind": "quote_span",
+      "units": [
+        "chatgpt-message:conv_synth_rt:msg-f-12-a-4",
+        "chatgpt-message:conv_synth_rt:msg-f-12-u-5"
+      ],
+      "why": "a quote crossing two speakers"
+    },
+    {
+      "kind": "claim",
+      "text": "The zephyrine backup is agreed.",
+      "why": "only in the regenerated-away A-4'"
+    }
+  ],
+  "name": "no evidence link or snippet spans two speakers",
+  "objectives": [
+    {
+      "id": "O-1",
+      "kind": "find_unit",
+      "query": "zephyrine backup"
+    }
+  ],
+  "schema": "anamnesis.fixture-gold.v1"
+}

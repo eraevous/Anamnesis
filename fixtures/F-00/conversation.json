@@ -1,0 +1,919 @@
+[
+  {
+    "create_time": 1800000000,
+    "current_node": "msg-f-00-a-40",
+    "id": "conv_synth_f00",
+    "mapping": {
+      "msg-f-00-a-10": {
+        "children": [
+          "msg-f-00-u-11"
+        ],
+        "id": "msg-f-00-a-10",
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Forty two-litre emitters is within range for most zones. Fix the dripping tee first, it may be stealing the pressure."
+            ]
+          },
+          "create_time": 1800000100,
+          "id": "msg-f-00-a-10",
+          "metadata": {
+            "model_slug": "synthetic-model"
+          }
+        },
+        "parent": "msg-f-00-u-9"
+      },
+      "msg-f-00-a-12": {
+        "children": [
+          "msg-f-00-u-13"
+        ],
+        "id": "msg-f-00-a-12",
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Yes. Cut a clean square end about two centimetres back and push it fully into the fitting."
+            ]
+          },
+          "create_time": 1800000120,
+          "id": "msg-f-00-a-12",
+          "metadata": {
+            "model_slug": "synthetic-model"
+          }
+        },
+        "parent": "msg-f-00-u-11"
+      },
+      "msg-f-00-a-14": {
+        "children": [
+          "msg-f-00-u-15"
+        ],
+        "id": "msg-f-00-a-14",
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Uneven flow on a long run is normal on slopes. Pressure-compensating emitters even it out."
+            ]
+          },
+          "create_time": 1800000140,
+          "id": "msg-f-00-a-14",
+          "metadata": {
+            "model_slug": "synthetic-model"
+          }
+        },
+        "parent": "msg-f-00-u-13"
+      },
+      "msg-f-00-a-16": {
+        "children": [
+          "msg-f-00-u-17"
+        ],
+        "id": "msg-f-00-a-16",
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Good plan. Put the compensating ones at the high end."
+            ]
+          },
+          "create_time": 1800000160,
+          "id": "msg-f-00-a-16",
+          "metadata": {
+            "model_slug": "synthetic-model"
+          }
+        },
+        "parent": "msg-f-00-u-15"
+      },
+      "msg-f-00-a-18": {
+        "children": [
+          "msg-f-00-u-19"
+        ],
+        "id": "msg-f-00-a-18",
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Water follows the least resistance, so the soil decides more than the layout does."
+            ]
+          },
+          "create_time": 1800000180,
+          "id": "msg-f-00-a-18",
+          "metadata": {
+            "model_slug": "synthetic-model"
+          }
+        },
+        "parent": "msg-f-00-u-17"
+      },
+      "msg-f-00-a-2": {
+        "children": [
+          "msg-f-00-u-3"
+        ],
+        "id": "msg-f-00-a-2",
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Start with power and the clock: check the battery, then confirm the timer's date and program are still set."
+            ]
+          },
+          "create_time": 1800000020,
+          "id": "msg-f-00-a-2",
+          "metadata": {
+            "model_slug": "synthetic-model"
+          }
+        },
+        "parent": "msg-f-00-u-1"
+      },
+      "msg-f-00-a-20": {
+        "children": [
+          "msg-f-00-u-21"
+        ],
+        "id": "msg-f-00-a-20",
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "You could extend emergent routing in two ways: let the queue reassign tasks automatically by measured load, and publish a daily map of where tasks actually flowed."
+            ]
+          },
+          "create_time": 1800000200,
+          "id": "msg-f-00-a-20",
+          "metadata": {
+            "model_slug": "synthetic-model"
+          }
+        },
+        "parent": "msg-f-00-u-19"
+      },
+      "msg-f-00-a-20p": {
+        "children": [],
+        "id": "msg-f-00-a-20p",
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "One extension would be to treat it as a gradient ledger: score every person by current friction and give each new task to the lowest score."
+            ]
+          },
+          "create_time": 1800000195,
+          "id": "msg-f-00-a-20p",
+          "metadata": {
+            "model_slug": "synthetic-model"
+          }
+        },
+        "parent": "msg-f-00-u-19"
+      },
+      "msg-f-00-a-22": {
+        "children": [
+          "msg-f-00-u-23"
+        ],
+        "id": "msg-f-00-a-22",
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "So the map shows the paths and people keep the choice. The routing is observed, not imposed."
+            ]
+          },
+          "create_time": 1800000220,
+          "id": "msg-f-00-a-22",
+          "metadata": {
+            "model_slug": "synthetic-model"
+          }
+        },
+        "parent": "msg-f-00-u-21"
+      },
+      "msg-f-00-a-24": {
+        "children": [
+          "msg-f-00-u-25"
+        ],
+        "id": "msg-f-00-a-24",
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Noted. Back to the bed: do you want a second zone for the slope?"
+            ]
+          },
+          "create_time": 1800000240,
+          "id": "msg-f-00-a-24",
+          "metadata": {
+            "model_slug": "synthetic-model"
+          }
+        },
+        "parent": "msg-f-00-u-23"
+      },
+      "msg-f-00-a-26": {
+        "children": [
+          "msg-f-00-u-27"
+        ],
+        "id": "msg-f-00-a-26",
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "A second valve on the manifold, a wire to a free station on the timer, and a new program line."
+            ]
+          },
+          "create_time": 1800000260,
+          "id": "msg-f-00-a-26",
+          "metadata": {
+            "model_slug": "synthetic-model"
+          }
+        },
+        "parent": "msg-f-00-u-25"
+      },
+      "msg-f-00-a-28": {
+        "children": [
+          "msg-f-00-u-29"
+        ],
+        "id": "msg-f-00-a-28",
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Plan the routing of the new line along the fence and keep the run under thirty metres, so the pressure holds at the far end."
+            ]
+          },
+          "create_time": 1800000280,
+          "id": "msg-f-00-a-28",
+          "metadata": {
+            "model_slug": "synthetic-model"
+          }
+        },
+        "parent": "msg-f-00-u-27"
+      },
+      "msg-f-00-a-30": {
+        "children": [
+          "msg-f-00-u-31"
+        ],
+        "id": "msg-f-00-a-30",
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Three-quarter-inch matches your manifold. Use the same brand so the solenoids interchange."
+            ]
+          },
+          "create_time": 1800000300,
+          "id": "msg-f-00-a-30",
+          "metadata": {
+            "model_slug": "synthetic-model"
+          }
+        },
+        "parent": "msg-f-00-u-29"
+      },
+      "msg-f-00-a-32": {
+        "children": [
+          "msg-f-00-u-33"
+        ],
+        "id": "msg-f-00-a-32",
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Program B at 6:30 for zone 4, twenty minutes, so it does not overlap zones 1 to 3."
+            ]
+          },
+          "create_time": 1800000320,
+          "id": "msg-f-00-a-32",
+          "metadata": {
+            "model_slug": "synthetic-model"
+          }
+        },
+        "parent": "msg-f-00-u-31"
+      },
+      "msg-f-00-a-34": {
+        "children": [
+          "msg-f-00-u-35"
+        ],
+        "id": "msg-f-00-a-34",
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "A rain sensor can skip cycles. Do you want the schedule to adjust itself beyond that?"
+            ]
+          },
+          "create_time": 1800000340,
+          "id": "msg-f-00-a-34",
+          "metadata": {
+            "model_slug": "synthetic-model"
+          }
+        },
+        "parent": "msg-f-00-u-33"
+      },
+      "msg-f-00-a-36": {
+        "children": [
+          "msg-f-00-u-37"
+        ],
+        "id": "msg-f-00-a-36",
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Then a soil-moisture readout per zone gives you the map without automatic changes."
+            ]
+          },
+          "create_time": 1800000360,
+          "id": "msg-f-00-a-36",
+          "metadata": {
+            "model_slug": "synthetic-model"
+          }
+        },
+        "parent": "msg-f-00-u-35"
+      },
+      "msg-f-00-a-38": {
+        "children": [
+          "msg-f-00-u-39"
+        ],
+        "id": "msg-f-00-a-38",
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Check the solenoid wire nuts are waterproof and the valve box drains."
+            ]
+          },
+          "create_time": 1800000380,
+          "id": "msg-f-00-a-38",
+          "metadata": {
+            "model_slug": "synthetic-model"
+          }
+        },
+        "parent": "msg-f-00-u-37"
+      },
+      "msg-f-00-a-4": {
+        "children": [
+          "msg-f-00-u-5"
+        ],
+        "id": "msg-f-00-a-4",
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Then check whether the valves get the signal. Run zone 1 manually and listen for the solenoid click."
+            ]
+          },
+          "create_time": 1800000040,
+          "id": "msg-f-00-a-4",
+          "metadata": {
+            "model_slug": "synthetic-model"
+          }
+        },
+        "parent": "msg-f-00-u-3"
+      },
+      "msg-f-00-a-40": {
+        "children": [],
+        "id": "msg-f-00-a-40",
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Then the system is in good shape. Run each zone once and watch the far emitters."
+            ]
+          },
+          "create_time": 1800000400,
+          "id": "msg-f-00-a-40",
+          "metadata": {
+            "model_slug": "synthetic-model"
+          }
+        },
+        "parent": "msg-f-00-u-39"
+      },
+      "msg-f-00-a-6": {
+        "children": [
+          "msg-f-00-u-7"
+        ],
+        "id": "msg-f-00-a-6",
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Two bends are fine for half-inch drip tubing. A sharp kink is not. Is the line flattened anywhere?"
+            ]
+          },
+          "create_time": 1800000060,
+          "id": "msg-f-00-a-6",
+          "metadata": {
+            "model_slug": "synthetic-model"
+          }
+        },
+        "parent": "msg-f-00-u-5"
+      },
+      "msg-f-00-a-8": {
+        "children": [
+          "msg-f-00-u-9"
+        ],
+        "id": "msg-f-00-a-8",
+        "message": {
+          "author": {
+            "role": "assistant"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Weak far-end pressure usually means a leak upstream or too many emitters on one zone."
+            ]
+          },
+          "create_time": 1800000080,
+          "id": "msg-f-00-a-8",
+          "metadata": {
+            "model_slug": "synthetic-model"
+          }
+        },
+        "parent": "msg-f-00-u-7"
+      },
+      "msg-f-00-u-1": {
+        "children": [
+          "msg-f-00-a-2"
+        ],
+        "id": "msg-f-00-u-1",
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "My garden irrigation timer stopped running the morning cycle. Where should I start?"
+            ]
+          },
+          "create_time": 1800000010,
+          "id": "msg-f-00-u-1",
+          "metadata": {}
+        },
+        "parent": "root-f-00"
+      },
+      "msg-f-00-u-11": {
+        "children": [
+          "msg-f-00-a-12"
+        ],
+        "id": "msg-f-00-u-11",
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "The tee is a compression fitting. Do I cut the tube back?"
+            ]
+          },
+          "create_time": 1800000110,
+          "id": "msg-f-00-u-11",
+          "metadata": {}
+        },
+        "parent": "msg-f-00-a-10"
+      },
+      "msg-f-00-u-13": {
+        "children": [
+          "msg-f-00-a-14"
+        ],
+        "id": "msg-f-00-u-13",
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Done. The drip stopped. Far emitters are better but still uneven."
+            ]
+          },
+          "create_time": 1800000130,
+          "id": "msg-f-00-u-13",
+          "metadata": {}
+        },
+        "parent": "msg-f-00-a-12"
+      },
+      "msg-f-00-u-15": {
+        "children": [
+          "msg-f-00-a-16"
+        ],
+        "id": "msg-f-00-u-15",
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "The bed slopes toward the fence. I'll swap the last ten emitters."
+            ]
+          },
+          "create_time": 1800000150,
+          "id": "msg-f-00-u-15",
+          "metadata": {}
+        },
+        "parent": "msg-f-00-a-14"
+      },
+      "msg-f-00-u-17": {
+        "children": [
+          "msg-f-00-a-18"
+        ],
+        "id": "msg-f-00-u-17",
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Watching the water today I noticed it finds paths nobody planned. It pools where the soil is soft, not where I laid the line."
+            ]
+          },
+          "create_time": 1800000170,
+          "id": "msg-f-00-u-17",
+          "metadata": {}
+        },
+        "parent": "msg-f-00-a-16"
+      },
+      "msg-f-00-u-19": {
+        "children": [
+          "msg-f-00-a-20",
+          "msg-f-00-a-20p"
+        ],
+        "id": "msg-f-00-u-19",
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "That's how work moves in a team's task queue too. I'd define emergent routing as tasks flowing to whoever has the least resistance right now, not to the person the plan assigned."
+            ]
+          },
+          "create_time": 1800000190,
+          "id": "msg-f-00-u-19",
+          "metadata": {}
+        },
+        "parent": "msg-f-00-a-18"
+      },
+      "msg-f-00-u-21": {
+        "children": [
+          "msg-f-00-a-22"
+        ],
+        "id": "msg-f-00-u-21",
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Keep the daily flow map, that is useful. No automatic reassignment: people should still choose, the routing has to stay emergent."
+            ]
+          },
+          "create_time": 1800000210,
+          "id": "msg-f-00-u-21",
+          "metadata": {}
+        },
+        "parent": "msg-f-00-a-20"
+      },
+      "msg-f-00-u-23": {
+        "children": [
+          "msg-f-00-a-24"
+        ],
+        "id": "msg-f-00-u-23",
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Yes. I'll call it seepage routing: the task queue as soil, the team as water."
+            ]
+          },
+          "create_time": 1800000230,
+          "id": "msg-f-00-u-23",
+          "metadata": {}
+        },
+        "parent": "msg-f-00-a-22"
+      },
+      "msg-f-00-u-25": {
+        "children": [
+          "msg-f-00-a-26"
+        ],
+        "id": "msg-f-00-u-25",
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Maybe. What would a second zone need?"
+            ]
+          },
+          "create_time": 1800000250,
+          "id": "msg-f-00-u-25",
+          "metadata": {}
+        },
+        "parent": "msg-f-00-a-24"
+      },
+      "msg-f-00-u-27": {
+        "children": [
+          "msg-f-00-a-28"
+        ],
+        "id": "msg-f-00-u-27",
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "The timer has two free stations. How do I plan the tubing?"
+            ]
+          },
+          "create_time": 1800000270,
+          "id": "msg-f-00-u-27",
+          "metadata": {}
+        },
+        "parent": "msg-f-00-a-26"
+      },
+      "msg-f-00-u-29": {
+        "children": [
+          "msg-f-00-a-30"
+        ],
+        "id": "msg-f-00-u-29",
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Thirty metres is plenty. Which valve size?"
+            ]
+          },
+          "create_time": 1800000290,
+          "id": "msg-f-00-u-29",
+          "metadata": {}
+        },
+        "parent": "msg-f-00-a-28"
+      },
+      "msg-f-00-u-3": {
+        "children": [
+          "msg-f-00-a-4"
+        ],
+        "id": "msg-f-00-u-3",
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Battery is new and the clock is right. Program A says 6:00 for zones 1 to 3."
+            ]
+          },
+          "create_time": 1800000030,
+          "id": "msg-f-00-u-3",
+          "metadata": {}
+        },
+        "parent": "msg-f-00-a-2"
+      },
+      "msg-f-00-u-31": {
+        "children": [
+          "msg-f-00-a-32"
+        ],
+        "id": "msg-f-00-u-31",
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Bought it. The timer needs a program for zone 4 now."
+            ]
+          },
+          "create_time": 1800000310,
+          "id": "msg-f-00-u-31",
+          "metadata": {}
+        },
+        "parent": "msg-f-00-a-30"
+      },
+      "msg-f-00-u-33": {
+        "children": [
+          "msg-f-00-a-34"
+        ],
+        "id": "msg-f-00-u-33",
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Set. It feels like the schedule should adapt to the weather on its own."
+            ]
+          },
+          "create_time": 1800000330,
+          "id": "msg-f-00-u-33",
+          "metadata": {}
+        },
+        "parent": "msg-f-00-a-32"
+      },
+      "msg-f-00-u-35": {
+        "children": [
+          "msg-f-00-a-36"
+        ],
+        "id": "msg-f-00-u-35",
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "No, same principle as seepage routing: show me where the water went and I decide the changes."
+            ]
+          },
+          "create_time": 1800000350,
+          "id": "msg-f-00-u-35",
+          "metadata": {}
+        },
+        "parent": "msg-f-00-a-34"
+      },
+      "msg-f-00-u-37": {
+        "children": [
+          "msg-f-00-a-38"
+        ],
+        "id": "msg-f-00-u-37",
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Good. Anything else to check on the new valve?"
+            ]
+          },
+          "create_time": 1800000370,
+          "id": "msg-f-00-u-37",
+          "metadata": {}
+        },
+        "parent": "msg-f-00-a-36"
+      },
+      "msg-f-00-u-39": {
+        "children": [
+          "msg-f-00-a-40"
+        ],
+        "id": "msg-f-00-u-39",
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Wire nuts are gel-filled. The box sits on gravel."
+            ]
+          },
+          "create_time": 1800000390,
+          "id": "msg-f-00-u-39",
+          "metadata": {}
+        },
+        "parent": "msg-f-00-a-38"
+      },
+      "msg-f-00-u-5": {
+        "children": [
+          "msg-f-00-a-6"
+        ],
+        "id": "msg-f-00-u-5",
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "Zone 1 clicks. I think the problem is the routing of the drip line past the shed, it bends twice."
+            ]
+          },
+          "create_time": 1800000050,
+          "id": "msg-f-00-u-5",
+          "metadata": {}
+        },
+        "parent": "msg-f-00-a-4"
+      },
+      "msg-f-00-u-7": {
+        "children": [
+          "msg-f-00-a-8"
+        ],
+        "id": "msg-f-00-u-7",
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "No kinks. Pressure at the far emitters is weak though."
+            ]
+          },
+          "create_time": 1800000070,
+          "id": "msg-f-00-u-7",
+          "metadata": {}
+        },
+        "parent": "msg-f-00-a-6"
+      },
+      "msg-f-00-u-9": {
+        "children": [
+          "msg-f-00-a-10"
+        ],
+        "id": "msg-f-00-u-9",
+        "message": {
+          "author": {
+            "role": "user"
+          },
+          "content": {
+            "content_type": "text",
+            "parts": [
+              "There are about 40 emitters on zone 2. The connector at the tee drips constantly."
+            ]
+          },
+          "create_time": 1800000090,
+          "id": "msg-f-00-u-9",
+          "metadata": {}
+        },
+        "parent": "msg-f-00-a-8"
+      },
+      "root-f-00": {
+        "children": [
+          "msg-f-00-u-1"
+        ],
+        "id": "root-f-00",
+        "message": null,
+        "parent": null
+      }
+    },
+    "title": "Fixing the garden irrigation timer",
+    "update_time": 1800000400
+  }
+]

@@ -1,0 +1,60 @@
+{
+  "active_path": [
+    "chatgpt-message:conv_synth_rt:msg-f-10-s-0",
+    "chatgpt-message:conv_synth_rt:msg-f-10-u-1",
+    "chatgpt-message:conv_synth_rt:msg-f-10-a-2",
+    "chatgpt-message:conv_synth_rt:msg-f-10-u-3",
+    "chatgpt-message:conv_synth_rt:msg-f-10-a-4",
+    "chatgpt-message:conv_synth_rt:msg-f-10-u-5",
+    "chatgpt-message:conv_synth_rt:msg-f-10-a-6"
+  ],
+  "alternate_units": {
+    "chatgpt-message:conv_synth_rt:msg-f-10-a-4p": "alternate",
+    "chatgpt-message:conv_synth_rt:msg-f-10-u-3p": "alternate"
+  },
+  "anchors": {
+    "O-1": [
+      "chatgpt-message:conv_synth_rt:msg-f-10-u-1",
+      "chatgpt-message:conv_synth_rt:msg-f-10-a-2"
+    ]
+  },
+  "checks": [
+    {
+      "kind": "hit_resolves_to_unit",
+      "objective": "O-1",
+      "why": "every hit carries a message_unit_id, not only a conversation id"
+    }
+  ],
+  "conversation_id": "conv_synth_rt",
+  "fixture": "F-10",
+  "islands": [
+    {
+      "branch": "active",
+      "first": "chatgpt-message:conv_synth_rt:msg-f-10-u-1",
+      "id": "I-1",
+      "last": "chatgpt-message:conv_synth_rt:msg-f-10-a-2",
+      "placement": "core"
+    }
+  ],
+  "labels": {
+    "A-2": "chatgpt-message:conv_synth_rt:msg-f-10-a-2",
+    "A-4": "chatgpt-message:conv_synth_rt:msg-f-10-a-4",
+    "A-4'": "chatgpt-message:conv_synth_rt:msg-f-10-a-4p",
+    "A-6": "chatgpt-message:conv_synth_rt:msg-f-10-a-6",
+    "S-0": "chatgpt-message:conv_synth_rt:msg-f-10-s-0",
+    "U-1": "chatgpt-message:conv_synth_rt:msg-f-10-u-1",
+    "U-3": "chatgpt-message:conv_synth_rt:msg-f-10-u-3",
+    "U-3'": "chatgpt-message:conv_synth_rt:msg-f-10-u-3p",
+    "U-5": "chatgpt-message:conv_synth_rt:msg-f-10-u-5"
+  },
+  "must_not": [],
+  "name": "a hit resolves to a message unit",
+  "objectives": [
+    {
+      "id": "O-1",
+      "kind": "find_unit",
+      "query": "quillfern archive"
+    }
+  ],
+  "schema": "anamnesis.fixture-gold.v1"
+}

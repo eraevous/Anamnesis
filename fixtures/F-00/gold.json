@@ -1,0 +1,298 @@
+{
+  "active_path": [
+    "chatgpt-message:conv_synth_f00:msg-f-00-u-1",
+    "chatgpt-message:conv_synth_f00:msg-f-00-a-2",
+    "chatgpt-message:conv_synth_f00:msg-f-00-u-3",
+    "chatgpt-message:conv_synth_f00:msg-f-00-a-4",
+    "chatgpt-message:conv_synth_f00:msg-f-00-u-5",
+    "chatgpt-message:conv_synth_f00:msg-f-00-a-6",
+    "chatgpt-message:conv_synth_f00:msg-f-00-u-7",
+    "chatgpt-message:conv_synth_f00:msg-f-00-a-8",
+    "chatgpt-message:conv_synth_f00:msg-f-00-u-9",
+    "chatgpt-message:conv_synth_f00:msg-f-00-a-10",
+    "chatgpt-message:conv_synth_f00:msg-f-00-u-11",
+    "chatgpt-message:conv_synth_f00:msg-f-00-a-12",
+    "chatgpt-message:conv_synth_f00:msg-f-00-u-13",
+    "chatgpt-message:conv_synth_f00:msg-f-00-a-14",
+    "chatgpt-message:conv_synth_f00:msg-f-00-u-15",
+    "chatgpt-message:conv_synth_f00:msg-f-00-a-16",
+    "chatgpt-message:conv_synth_f00:msg-f-00-u-17",
+    "chatgpt-message:conv_synth_f00:msg-f-00-a-18",
+    "chatgpt-message:conv_synth_f00:msg-f-00-u-19",
+    "chatgpt-message:conv_synth_f00:msg-f-00-a-20",
+    "chatgpt-message:conv_synth_f00:msg-f-00-u-21",
+    "chatgpt-message:conv_synth_f00:msg-f-00-a-22",
+    "chatgpt-message:conv_synth_f00:msg-f-00-u-23",
+    "chatgpt-message:conv_synth_f00:msg-f-00-a-24",
+    "chatgpt-message:conv_synth_f00:msg-f-00-u-25",
+    "chatgpt-message:conv_synth_f00:msg-f-00-a-26",
+    "chatgpt-message:conv_synth_f00:msg-f-00-u-27",
+    "chatgpt-message:conv_synth_f00:msg-f-00-a-28",
+    "chatgpt-message:conv_synth_f00:msg-f-00-u-29",
+    "chatgpt-message:conv_synth_f00:msg-f-00-a-30",
+    "chatgpt-message:conv_synth_f00:msg-f-00-u-31",
+    "chatgpt-message:conv_synth_f00:msg-f-00-a-32",
+    "chatgpt-message:conv_synth_f00:msg-f-00-u-33",
+    "chatgpt-message:conv_synth_f00:msg-f-00-a-34",
+    "chatgpt-message:conv_synth_f00:msg-f-00-u-35",
+    "chatgpt-message:conv_synth_f00:msg-f-00-a-36",
+    "chatgpt-message:conv_synth_f00:msg-f-00-u-37",
+    "chatgpt-message:conv_synth_f00:msg-f-00-a-38",
+    "chatgpt-message:conv_synth_f00:msg-f-00-u-39",
+    "chatgpt-message:conv_synth_f00:msg-f-00-a-40"
+  ],
+  "alternate_units": {
+    "chatgpt-message:conv_synth_f00:msg-f-00-a-20p": "alternate"
+  },
+  "anchors": {
+    "O-1": [
+      "chatgpt-message:conv_synth_f00:msg-f-00-u-19",
+      "chatgpt-message:conv_synth_f00:msg-f-00-a-20",
+      "chatgpt-message:conv_synth_f00:msg-f-00-u-21",
+      "chatgpt-message:conv_synth_f00:msg-f-00-a-22",
+      "chatgpt-message:conv_synth_f00:msg-f-00-u-23",
+      "chatgpt-message:conv_synth_f00:msg-f-00-u-35"
+    ],
+    "O-2": [
+      "chatgpt-message:conv_synth_f00:msg-f-00-a-20p"
+    ]
+  },
+  "claims": [
+    {
+      "id": "C-1",
+      "placement": "core",
+      "status": "EXPLICIT",
+      "support": [
+        "E-1"
+      ],
+      "text": "Emergent routing means tasks flow to whoever has the least resistance now, not to whoever the plan assigned."
+    },
+    {
+      "id": "C-2",
+      "placement": "core",
+      "status": "EXPLICIT",
+      "support": [
+        "E-6"
+      ],
+      "text": "The idea is named seepage routing."
+    },
+    {
+      "id": "C-3",
+      "placement": "core",
+      "status": "EXPLICIT",
+      "support": [
+        "E-2",
+        "E-4"
+      ],
+      "text": "A daily map of where tasks actually flowed is kept."
+    },
+    {
+      "id": "C-4",
+      "placement": "core",
+      "status": "EXPLICIT",
+      "support": [
+        "E-5"
+      ],
+      "text": "Tasks are not reassigned automatically; people keep the choice."
+    }
+  ],
+  "conversation_id": "conv_synth_f00",
+  "evidence": [
+    {
+      "artifact_class": "user_statement",
+      "canonical_eligibility": "eligible",
+      "id": "E-1",
+      "local_stance": "asserts",
+      "quote": "I'd define emergent routing as tasks flowing to whoever has the least resistance right now, not to the person the plan assigned.",
+      "speaker": "user",
+      "unit": "chatgpt-message:conv_synth_f00:msg-f-00-u-19"
+    },
+    {
+      "acceptance_status": "accepted",
+      "acceptance_unit": "chatgpt-message:conv_synth_f00:msg-f-00-u-21",
+      "artifact_class": "assistant_reply",
+      "canonical_eligibility": "eligible",
+      "id": "E-2",
+      "local_stance": "proposes",
+      "quote": "publish a daily map of where tasks actually flowed",
+      "speaker": "assistant",
+      "unit": "chatgpt-message:conv_synth_f00:msg-f-00-a-20"
+    },
+    {
+      "acceptance_status": "rejected",
+      "acceptance_unit": "chatgpt-message:conv_synth_f00:msg-f-00-u-21",
+      "artifact_class": "assistant_reply",
+      "canonical_eligibility": "ineligible:rejected",
+      "id": "E-3",
+      "local_stance": "proposes",
+      "quote": "let the queue reassign tasks automatically by measured load",
+      "speaker": "assistant",
+      "unit": "chatgpt-message:conv_synth_f00:msg-f-00-a-20"
+    },
+    {
+      "artifact_class": "user_statement",
+      "canonical_eligibility": "eligible",
+      "id": "E-4",
+      "local_stance": "asserts",
+      "quote": "Keep the daily flow map, that is useful.",
+      "speaker": "user",
+      "unit": "chatgpt-message:conv_synth_f00:msg-f-00-u-21"
+    },
+    {
+      "artifact_class": "user_statement",
+      "canonical_eligibility": "eligible",
+      "id": "E-5",
+      "local_stance": "rejects",
+      "quote": "No automatic reassignment: people should still choose",
+      "speaker": "user",
+      "unit": "chatgpt-message:conv_synth_f00:msg-f-00-u-21"
+    },
+    {
+      "artifact_class": "user_statement",
+      "canonical_eligibility": "eligible",
+      "id": "E-6",
+      "local_stance": "asserts",
+      "quote": "I'll call it seepage routing",
+      "speaker": "user",
+      "unit": "chatgpt-message:conv_synth_f00:msg-f-00-u-23"
+    },
+    {
+      "acceptance_status": "unreviewed",
+      "artifact_class": "assistant_reply",
+      "canonical_eligibility": "ineligible:alternate_branch",
+      "id": "E-7",
+      "local_stance": "proposes",
+      "quote": "gradient ledger",
+      "speaker": "assistant",
+      "unit": "chatgpt-message:conv_synth_f00:msg-f-00-a-20p"
+    }
+  ],
+  "fixture": "F-00",
+  "islands": [
+    {
+      "branch": "active",
+      "first": "chatgpt-message:conv_synth_f00:msg-f-00-u-17",
+      "id": "I-1",
+      "last": "chatgpt-message:conv_synth_f00:msg-f-00-u-23",
+      "placement": "core"
+    },
+    {
+      "branch": "active",
+      "first": "chatgpt-message:conv_synth_f00:msg-f-00-a-34",
+      "id": "I-2",
+      "last": "chatgpt-message:conv_synth_f00:msg-f-00-u-35",
+      "placement": "core"
+    },
+    {
+      "branch": "active",
+      "first": "chatgpt-message:conv_synth_f00:msg-f-00-u-5",
+      "id": "I-D1",
+      "last": "chatgpt-message:conv_synth_f00:msg-f-00-u-5",
+      "placement": "adjacency"
+    },
+    {
+      "branch": "active",
+      "first": "chatgpt-message:conv_synth_f00:msg-f-00-a-28",
+      "id": "I-D2",
+      "last": "chatgpt-message:conv_synth_f00:msg-f-00-a-28",
+      "placement": "adjacency"
+    }
+  ],
+  "labels": {
+    "A-10": "chatgpt-message:conv_synth_f00:msg-f-00-a-10",
+    "A-12": "chatgpt-message:conv_synth_f00:msg-f-00-a-12",
+    "A-14": "chatgpt-message:conv_synth_f00:msg-f-00-a-14",
+    "A-16": "chatgpt-message:conv_synth_f00:msg-f-00-a-16",
+    "A-18": "chatgpt-message:conv_synth_f00:msg-f-00-a-18",
+    "A-2": "chatgpt-message:conv_synth_f00:msg-f-00-a-2",
+    "A-20": "chatgpt-message:conv_synth_f00:msg-f-00-a-20",
+    "A-20'": "chatgpt-message:conv_synth_f00:msg-f-00-a-20p",
+    "A-22": "chatgpt-message:conv_synth_f00:msg-f-00-a-22",
+    "A-24": "chatgpt-message:conv_synth_f00:msg-f-00-a-24",
+    "A-26": "chatgpt-message:conv_synth_f00:msg-f-00-a-26",
+    "A-28": "chatgpt-message:conv_synth_f00:msg-f-00-a-28",
+    "A-30": "chatgpt-message:conv_synth_f00:msg-f-00-a-30",
+    "A-32": "chatgpt-message:conv_synth_f00:msg-f-00-a-32",
+    "A-34": "chatgpt-message:conv_synth_f00:msg-f-00-a-34",
+    "A-36": "chatgpt-message:conv_synth_f00:msg-f-00-a-36",
+    "A-38": "chatgpt-message:conv_synth_f00:msg-f-00-a-38",
+    "A-4": "chatgpt-message:conv_synth_f00:msg-f-00-a-4",
+    "A-40": "chatgpt-message:conv_synth_f00:msg-f-00-a-40",
+    "A-6": "chatgpt-message:conv_synth_f00:msg-f-00-a-6",
+    "A-8": "chatgpt-message:conv_synth_f00:msg-f-00-a-8",
+    "U-1": "chatgpt-message:conv_synth_f00:msg-f-00-u-1",
+    "U-11": "chatgpt-message:conv_synth_f00:msg-f-00-u-11",
+    "U-13": "chatgpt-message:conv_synth_f00:msg-f-00-u-13",
+    "U-15": "chatgpt-message:conv_synth_f00:msg-f-00-u-15",
+    "U-17": "chatgpt-message:conv_synth_f00:msg-f-00-u-17",
+    "U-19": "chatgpt-message:conv_synth_f00:msg-f-00-u-19",
+    "U-21": "chatgpt-message:conv_synth_f00:msg-f-00-u-21",
+    "U-23": "chatgpt-message:conv_synth_f00:msg-f-00-u-23",
+    "U-25": "chatgpt-message:conv_synth_f00:msg-f-00-u-25",
+    "U-27": "chatgpt-message:conv_synth_f00:msg-f-00-u-27",
+    "U-29": "chatgpt-message:conv_synth_f00:msg-f-00-u-29",
+    "U-3": "chatgpt-message:conv_synth_f00:msg-f-00-u-3",
+    "U-31": "chatgpt-message:conv_synth_f00:msg-f-00-u-31",
+    "U-33": "chatgpt-message:conv_synth_f00:msg-f-00-u-33",
+    "U-35": "chatgpt-message:conv_synth_f00:msg-f-00-u-35",
+    "U-37": "chatgpt-message:conv_synth_f00:msg-f-00-u-37",
+    "U-39": "chatgpt-message:conv_synth_f00:msg-f-00-u-39",
+    "U-5": "chatgpt-message:conv_synth_f00:msg-f-00-u-5",
+    "U-7": "chatgpt-message:conv_synth_f00:msg-f-00-u-7",
+    "U-9": "chatgpt-message:conv_synth_f00:msg-f-00-u-9"
+  },
+  "must_not": [
+    {
+      "kind": "claim",
+      "text": "The queue reassigns tasks automatically by measured load.",
+      "why": "rejected part of A-20 (U-21)"
+    },
+    {
+      "kind": "claim",
+      "text": "The idea is named gradient ledger.",
+      "why": "only in the regenerated-away alternate A-20'"
+    },
+    {
+      "islands": [
+        "I-1",
+        "I-2"
+      ],
+      "kind": "merge",
+      "why": "two islands in one conversation stay separate segments"
+    },
+    {
+      "kind": "merge",
+      "units": [
+        "chatgpt-message:conv_synth_f00:msg-f-00-a-20p",
+        "chatgpt-message:conv_synth_f00:msg-f-00-a-20"
+      ],
+      "why": "an alternate never joins an active-branch segment"
+    },
+    {
+      "island": "I-D1",
+      "kind": "placement",
+      "not": "core",
+      "why": "plumbing sense of 'routing'"
+    },
+    {
+      "island": "I-D2",
+      "kind": "placement",
+      "not": "core",
+      "why": "plumbing sense of 'routing'"
+    }
+  ],
+  "name": "the buried branch",
+  "objectives": [
+    {
+      "id": "O-1",
+      "kind": "find_concept",
+      "query": "emergent routing in a task queue"
+    },
+    {
+      "id": "O-2",
+      "kind": "find_alternate",
+      "query": "gradient ledger friction score"
+    }
+  ],
+  "schema": "anamnesis.fixture-gold.v1"
+}
