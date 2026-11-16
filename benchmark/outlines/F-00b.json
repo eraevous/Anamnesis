@@ -98,6 +98,7 @@
     ],
     "evidence": [
       {
+        "id": "E-1",
         "unit": "U-19",
         "quote": "Jobs drift to whoever is least stuck right now, not to whoever the plan named.",
         "speaker": "user",
@@ -106,6 +107,7 @@
         "canonical_eligibility": "eligible"
       },
       {
+        "id": "E-2",
         "unit": "A-20",
         "quote": "publish a daily map of where the jobs actually drifted",
         "speaker": "assistant",
@@ -116,6 +118,7 @@
         "acceptance_unit": "U-21"
       },
       {
+        "id": "E-3",
         "unit": "A-20",
         "quote": "let the system hand jobs over automatically by measured load",
         "speaker": "assistant",
@@ -126,6 +129,7 @@
         "acceptance_unit": "U-21"
       },
       {
+        "id": "E-4",
         "unit": "U-21",
         "quote": "Keep the daily drift map, that is useful.",
         "speaker": "user",
@@ -134,6 +138,7 @@
         "canonical_eligibility": "eligible"
       },
       {
+        "id": "E-5",
         "unit": "U-21",
         "quote": "No automatic hand-over: people should still choose",
         "speaker": "user",
@@ -142,6 +147,7 @@
         "canonical_eligibility": "eligible"
       },
       {
+        "id": "E-6",
         "unit": "U-23",
         "quote": "I'll call it quellow",
         "speaker": "user",
@@ -150,6 +156,7 @@
         "canonical_eligibility": "eligible"
       },
       {
+        "id": "E-7",
         "unit": "A-20'",
         "quote": "gradient ledger",
         "speaker": "assistant",
@@ -166,7 +173,7 @@
         "placement": "core",
         "text": "Work drifts to whoever is least stuck now, not to whoever the plan named.",
         "support": [
-          "U-19"
+          "E-1"
         ]
       },
       {
@@ -175,7 +182,7 @@
         "placement": "core",
         "text": "The idea is named quellow.",
         "support": [
-          "U-23"
+          "E-6"
         ]
       },
       {
@@ -184,8 +191,8 @@
         "placement": "core",
         "text": "A daily map of where the jobs actually drifted is kept.",
         "support": [
-          "A-20",
-          "U-21"
+          "E-2",
+          "E-4"
         ]
       },
       {
@@ -194,7 +201,7 @@
         "placement": "core",
         "text": "Jobs are not handed over automatically; people keep the choice.",
         "support": [
-          "U-21"
+          "E-5"
         ]
       }
     ],

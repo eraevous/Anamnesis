@@ -28,6 +28,8 @@ CLAIM_STATUSES = {"EXPLICIT", "INFERRED", "UNRESOLVED", "CONFLICTING"}
 CHECK_KINDS = {"hit_resolves_to_unit", "alternate_findable", "snippet_single_unit"}
 MUST_NOT_KINDS = {"claim", "merge", "placement", "label", "quote_span", "chronology"}
 FAILURE_METHODS = {"lexical_only", "naive_baseline"}
+# Design note section 4: never eligible, whatever their acceptance (rules 3, 4 and 6).
+NEVER_ELIGIBLE = {"instruction", "generated_summary", "unclassified"}
 
 
 class GoldError(ValueError):
@@ -86,6 +88,8 @@ def validate(gold: dict, texts: dict[str, str] | None = None, roles: dict[str, s
         _need(u not in pos, f"{fid}: alternate unit {u} is on the active path")
         _need(status == "alternate", f"{fid}: alternate unit {u} must be labelled alternate")
 
+    ev_ids = [e["id"] for e in gold.get("evidence", [])]
+    _need(len(ev_ids) == len(set(ev_ids)), f"{fid}: duplicate evidence ids")
     for e in gold.get("evidence", []):
         u = e["unit"]
         unit(u, "evidence")
@@ -102,24 +106,32 @@ def validate(gold: dict, texts: dict[str, str] | None = None, roles: dict[str, s
         if acc in ("accepted", "rejected"):
             _need("acceptance_unit" in e, f"{fid}: {acc} evidence on {u} must cite its acceptance_unit")
             unit(e["acceptance_unit"], "acceptance_unit")
+            # Section 4: the acceptance unit is where the *user* accepts or rejects; an assistant
+            # can never accept its own proposal.
+            if roles is not None:
+                _need(roles[e["acceptance_unit"]] == "user",
+                      f"{fid}: evidence {e['id']} cites acceptance_unit {e['acceptance_unit']}, which is not a user unit")
         # Design note section 4, rule 1: core eligibility is user statements or accepted evidence.
         if elig == "eligible":
             _need(e["artifact_class"] == "user_statement" or acc == "accepted",
                   f"{fid}: evidence on {u} is eligible but neither a user statement nor accepted")
+            _need(e["artifact_class"] not in NEVER_ELIGIBLE,
+                  f"{fid}: evidence {e['id']} is {e['artifact_class']}, which is never eligible")
         _need(bool(e["quote"].strip()), f"{fid}: evidence on {u} has an empty quote")
         if texts is not None:
             _need(e["quote"] in texts[u], f"{fid}: evidence quote is not verbatim in {u}: {e['quote']!r}")
 
-    eligible_units = {e["unit"] for e in gold.get("evidence", []) if e["canonical_eligibility"] == "eligible"}
+    # Claims cite evidence spans by id, not units: one unit can hold an accepted and a rejected span.
+    evidence = {e["id"]: e for e in gold.get("evidence", [])}
     for c in gold.get("claims", []):
         _need(c["status"] in CLAIM_STATUSES, f"{fid}: claim {c['id']} has unknown status")
         _need(c["placement"] in PLACEMENTS, f"{fid}: claim {c['id']} has unknown placement")
         _need(len(c["support"]) > 0, f"{fid}: claim {c['id']} has no support")
-        for u in c["support"]:
-            unit(u, f"claim {c['id']}")
-        if c["placement"] == "core":
-            _need(any(u in eligible_units for u in c["support"]),
-                  f"{fid}: core claim {c['id']} has no eligible evidence among its support")
+        for ref in c["support"]:
+            _need(ref in evidence, f"{fid}: claim {c['id']} cites unknown evidence {ref}")
+            if c["placement"] == "core":
+                _need(evidence[ref]["canonical_eligibility"] == "eligible",
+                      f"{fid}: core claim {c['id']} cites ineligible evidence {ref}")
 
     for chk in gold.get("checks", []):
         _need(chk["kind"] in CHECK_KINDS, f"{fid}: unknown check kind {chk['kind']}")

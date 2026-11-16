@@ -63,7 +63,7 @@
       "placement": "core",
       "status": "EXPLICIT",
       "support": [
-        "chatgpt-message:conv_synth_f00b:msg-f-00b-u-19"
+        "E-1"
       ],
       "text": "Work drifts to whoever is least stuck now, not to whoever the plan named."
     },
@@ -72,7 +72,7 @@
       "placement": "core",
       "status": "EXPLICIT",
       "support": [
-        "chatgpt-message:conv_synth_f00b:msg-f-00b-u-23"
+        "E-6"
       ],
       "text": "The idea is named quellow."
     },
@@ -81,8 +81,8 @@
       "placement": "core",
       "status": "EXPLICIT",
       "support": [
-        "chatgpt-message:conv_synth_f00b:msg-f-00b-a-20",
-        "chatgpt-message:conv_synth_f00b:msg-f-00b-u-21"
+        "E-2",
+        "E-4"
       ],
       "text": "A daily map of where the jobs actually drifted is kept."
     },
@@ -91,7 +91,7 @@
       "placement": "core",
       "status": "EXPLICIT",
       "support": [
-        "chatgpt-message:conv_synth_f00b:msg-f-00b-u-21"
+        "E-5"
       ],
       "text": "Jobs are not handed over automatically; people keep the choice."
     }
@@ -101,6 +101,7 @@
     {
       "artifact_class": "user_statement",
       "canonical_eligibility": "eligible",
+      "id": "E-1",
       "local_stance": "asserts",
       "quote": "Jobs drift to whoever is least stuck right now, not to whoever the plan named.",
       "speaker": "user",
@@ -111,6 +112,7 @@
       "acceptance_unit": "chatgpt-message:conv_synth_f00b:msg-f-00b-u-21",
       "artifact_class": "assistant_reply",
       "canonical_eligibility": "eligible",
+      "id": "E-2",
       "local_stance": "proposes",
       "quote": "publish a daily map of where the jobs actually drifted",
       "speaker": "assistant",
@@ -121,6 +123,7 @@
       "acceptance_unit": "chatgpt-message:conv_synth_f00b:msg-f-00b-u-21",
       "artifact_class": "assistant_reply",
       "canonical_eligibility": "ineligible:rejected",
+      "id": "E-3",
       "local_stance": "proposes",
       "quote": "let the system hand jobs over automatically by measured load",
       "speaker": "assistant",
@@ -129,6 +132,7 @@
     {
       "artifact_class": "user_statement",
       "canonical_eligibility": "eligible",
+      "id": "E-4",
       "local_stance": "asserts",
       "quote": "Keep the daily drift map, that is useful.",
       "speaker": "user",
@@ -137,6 +141,7 @@
     {
       "artifact_class": "user_statement",
       "canonical_eligibility": "eligible",
+      "id": "E-5",
       "local_stance": "rejects",
       "quote": "No automatic hand-over: people should still choose",
       "speaker": "user",
@@ -145,6 +150,7 @@
     {
       "artifact_class": "user_statement",
       "canonical_eligibility": "eligible",
+      "id": "E-6",
       "local_stance": "asserts",
       "quote": "I'll call it quellow",
       "speaker": "user",
@@ -154,6 +160,7 @@
       "acceptance_status": "unreviewed",
       "artifact_class": "assistant_reply",
       "canonical_eligibility": "ineligible:alternate_branch",
+      "id": "E-7",
       "local_stance": "proposes",
       "quote": "gradient ledger",
       "speaker": "assistant",

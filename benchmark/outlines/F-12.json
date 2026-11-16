@@ -42,6 +42,7 @@
     ],
     "evidence": [
       {
+        "id": "E-1",
         "unit": "A-4",
         "quote": "I still suggest an encrypted zephyrine backup.",
         "speaker": "assistant",
@@ -52,6 +53,7 @@
         "acceptance_unit": "U-5"
       },
       {
+        "id": "E-2",
         "unit": "U-5",
         "quote": "I disagree about the zephyrine backup. Leave it unresolved for now.",
         "speaker": "user",
@@ -67,8 +69,8 @@
         "placement": "conflict",
         "text": "Whether to keep an encrypted zephyrine backup is open.",
         "support": [
-          "A-4",
-          "U-5"
+          "E-1",
+          "E-2"
         ]
       }
     ],

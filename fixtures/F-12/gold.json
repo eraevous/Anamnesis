@@ -31,8 +31,8 @@
       "placement": "conflict",
       "status": "UNRESOLVED",
       "support": [
-        "chatgpt-message:conv_synth_rt:msg-f-12-a-4",
-        "chatgpt-message:conv_synth_rt:msg-f-12-u-5"
+        "E-1",
+        "E-2"
       ],
       "text": "Whether to keep an encrypted zephyrine backup is open."
     }
@@ -44,6 +44,7 @@
       "acceptance_unit": "chatgpt-message:conv_synth_rt:msg-f-12-u-5",
       "artifact_class": "assistant_reply",
       "canonical_eligibility": "ineligible:rejected",
+      "id": "E-1",
       "local_stance": "proposes",
       "quote": "I still suggest an encrypted zephyrine backup.",
       "speaker": "assistant",
@@ -52,6 +53,7 @@
     {
       "artifact_class": "user_statement",
       "canonical_eligibility": "eligible",
+      "id": "E-2",
       "local_stance": "rejects",
       "quote": "I disagree about the zephyrine backup. Leave it unresolved for now.",
       "speaker": "user",

@@ -144,7 +144,9 @@ class GoldTests(unittest.TestCase):
     def test_committed_gold_validates(self):
         for fid in fixturegen.outline_ids():
             conv, gold = load(fid)
-            gold_schema.validate(gold, texts=unit_texts(conv, gold))
+            roles = {f"chatgpt-message:{conv[0]['id']}:{n['message']['id']}": n["message"]["author"]["role"]
+                     for n in conv[0]["mapping"].values() if n["message"]}
+            gold_schema.validate(gold, texts=unit_texts(conv, gold), roles=roles)
 
     def _gold(self):
         conv, gold = load("F-00")
@@ -169,12 +171,40 @@ class GoldTests(unittest.TestCase):
         with self.assertRaises(gold_schema.GoldError):
             gold_schema.validate(gold, texts=texts)
 
-    def test_core_claim_needs_eligible_support(self):
+    def test_core_claim_needs_every_support_eligible(self):
+        # Copilot review on #10: one eligible span must not carry an ineligible one.
         gold, texts = self._gold()
-        alt = next(u for u in gold["alternate_units"])
-        gold["claims"].append({"id": "C-x", "status": "EXPLICIT", "placement": "core", "text": "x", "support": [alt]})
+        rejected = next(e["id"] for e in gold["evidence"] if e.get("acceptance_status") == "rejected")
+        core = next(c for c in gold["claims"] if c["placement"] == "core")
+        core["support"].append(rejected)
         with self.assertRaises(gold_schema.GoldError):
             gold_schema.validate(gold, texts=texts)
+
+    def test_claim_support_must_name_evidence_not_units(self):
+        gold, texts = self._gold()
+        gold["claims"][0]["support"] = [gold["evidence"][0]["unit"]]
+        with self.assertRaises(gold_schema.GoldError):
+            gold_schema.validate(gold, texts=texts)
+
+    def test_acceptance_unit_must_be_a_user_unit(self):
+        # Copilot review on #10: an assistant can't accept its own proposal.
+        conv, gold = load("F-00")
+        gold = copy.deepcopy(gold)
+        roles = {f"chatgpt-message:{conv[0]['id']}:{n['message']['id']}": n["message"]["author"]["role"]
+                 for n in conv[0]["mapping"].values() if n["message"]}
+        accepted = next(e for e in gold["evidence"] if e.get("acceptance_status") == "accepted")
+        accepted["acceptance_unit"] = accepted["unit"]
+        with self.assertRaises(gold_schema.GoldError):
+            gold_schema.validate(gold, texts=unit_texts(conv, gold), roles=roles)
+
+    def test_never_eligible_classes_rejected_even_when_accepted(self):
+        # Copilot review on #10: design section 4 rules 3, 4 and 6.
+        for cls in sorted(gold_schema.NEVER_ELIGIBLE):
+            gold, texts = self._gold()
+            accepted = next(e for e in gold["evidence"] if e.get("acceptance_status") == "accepted")
+            accepted["artifact_class"] = cls
+            with self.assertRaises(gold_schema.GoldError, msg=cls):
+                gold_schema.validate(gold, texts=texts)
 
     def test_alternate_on_active_path_rejected(self):
         gold, texts = self._gold()

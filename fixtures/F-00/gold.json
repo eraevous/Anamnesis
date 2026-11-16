@@ -63,7 +63,7 @@
       "placement": "core",
       "status": "EXPLICIT",
       "support": [
-        "chatgpt-message:conv_synth_f00:msg-f-00-u-19"
+        "E-1"
       ],
       "text": "Emergent routing means tasks flow to whoever has the least resistance now, not to whoever the plan assigned."
     },
@@ -72,7 +72,7 @@
       "placement": "core",
       "status": "EXPLICIT",
       "support": [
-        "chatgpt-message:conv_synth_f00:msg-f-00-u-23"
+        "E-6"
       ],
       "text": "The idea is named seepage routing."
     },
@@ -81,8 +81,8 @@
       "placement": "core",
       "status": "EXPLICIT",
       "support": [
-        "chatgpt-message:conv_synth_f00:msg-f-00-a-20",
-        "chatgpt-message:conv_synth_f00:msg-f-00-u-21"
+        "E-2",
+        "E-4"
       ],
       "text": "A daily map of where tasks actually flowed is kept."
     },
@@ -91,7 +91,7 @@
       "placement": "core",
       "status": "EXPLICIT",
       "support": [
-        "chatgpt-message:conv_synth_f00:msg-f-00-u-21"
+        "E-5"
       ],
       "text": "Tasks are not reassigned automatically; people keep the choice."
     }
@@ -101,6 +101,7 @@
     {
       "artifact_class": "user_statement",
       "canonical_eligibility": "eligible",
+      "id": "E-1",
       "local_stance": "asserts",
       "quote": "I'd define emergent routing as tasks flowing to whoever has the least resistance right now, not to the person the plan assigned.",
       "speaker": "user",
@@ -111,6 +112,7 @@
       "acceptance_unit": "chatgpt-message:conv_synth_f00:msg-f-00-u-21",
       "artifact_class": "assistant_reply",
       "canonical_eligibility": "eligible",
+      "id": "E-2",
       "local_stance": "proposes",
       "quote": "publish a daily map of where tasks actually flowed",
       "speaker": "assistant",
@@ -121,6 +123,7 @@
       "acceptance_unit": "chatgpt-message:conv_synth_f00:msg-f-00-u-21",
       "artifact_class": "assistant_reply",
       "canonical_eligibility": "ineligible:rejected",
+      "id": "E-3",
       "local_stance": "proposes",
       "quote": "let the queue reassign tasks automatically by measured load",
       "speaker": "assistant",
@@ -129,6 +132,7 @@
     {
       "artifact_class": "user_statement",
       "canonical_eligibility": "eligible",
+      "id": "E-4",
       "local_stance": "asserts",
       "quote": "Keep the daily flow map, that is useful.",
       "speaker": "user",
@@ -137,6 +141,7 @@
     {
       "artifact_class": "user_statement",
       "canonical_eligibility": "eligible",
+      "id": "E-5",
       "local_stance": "rejects",
       "quote": "No automatic reassignment: people should still choose",
       "speaker": "user",
@@ -145,6 +150,7 @@
     {
       "artifact_class": "user_statement",
       "canonical_eligibility": "eligible",
+      "id": "E-6",
       "local_stance": "asserts",
       "quote": "I'll call it seepage routing",
       "speaker": "user",
@@ -154,6 +160,7 @@
       "acceptance_status": "unreviewed",
       "artifact_class": "assistant_reply",
       "canonical_eligibility": "ineligible:alternate_branch",
+      "id": "E-7",
       "local_stance": "proposes",
       "quote": "gradient ledger",
       "speaker": "assistant",

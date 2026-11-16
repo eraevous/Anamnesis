@@ -244,6 +244,7 @@
     },
     "evidence": [
       {
+        "id": "E-1",
         "unit": "U-19",
         "quote": "I'd define emergent routing as tasks flowing to whoever has the least resistance right now, not to the person the plan assigned.",
         "speaker": "user",
@@ -252,6 +253,7 @@
         "canonical_eligibility": "eligible"
       },
       {
+        "id": "E-2",
         "unit": "A-20",
         "quote": "publish a daily map of where tasks actually flowed",
         "speaker": "assistant",
@@ -262,6 +264,7 @@
         "acceptance_unit": "U-21"
       },
       {
+        "id": "E-3",
         "unit": "A-20",
         "quote": "let the queue reassign tasks automatically by measured load",
         "speaker": "assistant",
@@ -272,6 +275,7 @@
         "acceptance_unit": "U-21"
       },
       {
+        "id": "E-4",
         "unit": "U-21",
         "quote": "Keep the daily flow map, that is useful.",
         "speaker": "user",
@@ -280,6 +284,7 @@
         "canonical_eligibility": "eligible"
       },
       {
+        "id": "E-5",
         "unit": "U-21",
         "quote": "No automatic reassignment: people should still choose",
         "speaker": "user",
@@ -288,6 +293,7 @@
         "canonical_eligibility": "eligible"
       },
       {
+        "id": "E-6",
         "unit": "U-23",
         "quote": "I'll call it seepage routing",
         "speaker": "user",
@@ -296,6 +302,7 @@
         "canonical_eligibility": "eligible"
       },
       {
+        "id": "E-7",
         "unit": "A-20'",
         "quote": "gradient ledger",
         "speaker": "assistant",
@@ -312,7 +319,7 @@
         "placement": "core",
         "text": "Emergent routing means tasks flow to whoever has the least resistance now, not to whoever the plan assigned.",
         "support": [
-          "U-19"
+          "E-1"
         ]
       },
       {
@@ -321,7 +328,7 @@
         "placement": "core",
         "text": "The idea is named seepage routing.",
         "support": [
-          "U-23"
+          "E-6"
         ]
       },
       {
@@ -330,8 +337,8 @@
         "placement": "core",
         "text": "A daily map of where tasks actually flowed is kept.",
         "support": [
-          "A-20",
-          "U-21"
+          "E-2",
+          "E-4"
         ]
       },
       {
@@ -340,7 +347,7 @@
         "placement": "core",
         "text": "Tasks are not reassigned automatically; people keep the choice.",
         "support": [
-          "U-21"
+          "E-5"
         ]
       }
     ],
