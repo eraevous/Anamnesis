@@ -30,6 +30,8 @@ MUST_NOT_KINDS = {"claim", "merge", "placement", "label", "quote_span", "chronol
 FAILURE_METHODS = {"lexical_only", "naive_baseline"}
 # Design note section 4: never eligible, whatever their acceptance (rules 3, 4 and 6).
 NEVER_ELIGIBLE = {"instruction", "generated_summary", "unclassified"}
+# Design note section 4: not admissible as support for a claim of *any* placement.
+INADMISSIBLE = {"instruction", "generated_summary"}
 
 
 class GoldError(ValueError):
@@ -129,6 +131,8 @@ def validate(gold: dict, texts: dict[str, str] | None = None, roles: dict[str, s
         _need(len(c["support"]) > 0, f"{fid}: claim {c['id']} has no support")
         for ref in c["support"]:
             _need(ref in evidence, f"{fid}: claim {c['id']} cites unknown evidence {ref}")
+            _need(evidence[ref]["artifact_class"] not in INADMISSIBLE,
+                  f"{fid}: claim {c['id']} cites {evidence[ref]['artifact_class']} evidence {ref}, which is inadmissible")
             if c["placement"] == "core":
                 _need(evidence[ref]["canonical_eligibility"] == "eligible",
                       f"{fid}: core claim {c['id']} cites ineligible evidence {ref}")

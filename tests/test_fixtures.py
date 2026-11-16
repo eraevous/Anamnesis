@@ -206,6 +206,17 @@ class GoldTests(unittest.TestCase):
             with self.assertRaises(gold_schema.GoldError, msg=cls):
                 gold_schema.validate(gold, texts=texts)
 
+    def test_inadmissible_classes_rejected_for_any_placement(self):
+        # Copilot review on #10 (second round): instruction and generated_summary may not support
+        # even a non-core claim (design section 4, admissibility).
+        for cls in sorted(gold_schema.INADMISSIBLE):
+            conv, gold = load("F-12")
+            gold = copy.deepcopy(gold)
+            gold["evidence"][0]["artifact_class"] = cls
+            gold["evidence"][0]["canonical_eligibility"] = "ineligible:" + cls
+            with self.assertRaises(gold_schema.GoldError, msg=cls):
+                gold_schema.validate(gold, texts=unit_texts(conv, gold))
+
     def test_alternate_on_active_path_rejected(self):
         gold, texts = self._gold()
         gold["alternate_units"][gold["active_path"][3]] = "alternate"
