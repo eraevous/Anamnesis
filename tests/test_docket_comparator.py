@@ -204,6 +204,33 @@ class StopsAndUnknowns(unittest.TestCase):
                 m = write_set(Path(d), [REQ], [dict(REPLY, text="a")], [filing])
                 self.assertEqual(comparator.run(m)["rows"][0]["status"], "unknown", prov)
 
+    def test_unicode_line_separator_inside_a_record_is_not_a_record_boundary(self):
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ], [dict(REPLY, text="a\u2028b")], [dict(FILING, text="a\u2028b")])
+            # json.dumps escapes U+2028 by default; write the raw character to exercise the reader.
+            for role in ("replies", "filings"):
+                p = Path(d) / f"{role}.jsonl"
+                p.write_text(p.read_text().replace("\\u2028", "\u2028"), encoding="utf-8")
+            mf = json.loads(m.read_text())
+            for src in mf["sources"]:
+                src["sha256"] = hashlib.sha256((Path(d) / src["path"]).read_bytes()).hexdigest()
+            m.write_text(json.dumps(mf))
+            self.assertIn("\u2028", (Path(d) / "replies.jsonl").read_text(encoding="utf-8"))
+            self.assertEqual(comparator.run(m)["rows"][0]["status"], "matched")
+
+    def test_malformed_record_is_a_source_problem_not_a_crash(self):
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ], [dict(REPLY, text="a")])
+            p = Path(d) / "replies.jsonl"
+            p.write_text(p.read_text() + "{not json\n")
+            mf = json.loads(m.read_text())
+            for src in mf["sources"]:
+                src["sha256"] = hashlib.sha256((Path(d) / src["path"]).read_bytes()).hexdigest()
+            m.write_text(json.dumps(mf))
+            report = comparator.run(m)
+            self.assertEqual({r["status"] for r in report["rows"]}, {"unknown"})
+            self.assertTrue(any("malformed_record" in s for s in report["stop"]))
+
     def test_filing_before_reply_is_unknown(self):
         with tempfile.TemporaryDirectory() as d:
             m = write_set(Path(d), [REQ], [dict(REPLY, text="a")],

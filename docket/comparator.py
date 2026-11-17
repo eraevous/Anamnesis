@@ -126,13 +126,33 @@ class Inputs:
             if data is None:
                 problems.append(f"{rel}: {why}")
                 continue
-            for n, line in enumerate(data.decode("utf-8").splitlines(), 1):
+            try:
+                text = data.decode("utf-8")
+            except UnicodeDecodeError:
+                problems.append(f"{rel}: undecodable_source")
+                continue
+            # JSONL records end at "\n" only; str.splitlines() would also split inside a JSON
+            # string at U+2028 and other Unicode line boundaries, which are legal unescaped.
+            parsed = []
+            for n, line in enumerate(text.split("\n"), 1):
+                line = line.removesuffix("\r")
                 if not line.strip():
                     continue
-                rec = json.loads(line)
+                try:
+                    rec = json.loads(line)
+                except json.JSONDecodeError:
+                    problems.append(f"{rel}:{n}: malformed_record")
+                    parsed = None
+                    break
+                if not isinstance(rec, dict):
+                    problems.append(f"{rel}:{n}: malformed_record (not an object)")
+                    parsed = None
+                    break
                 rec["_locator"] = f"{rel}:{n}"
                 rec["_line_sha256"] = sha256_bytes(line.encode("utf-8"))
-                out.append(rec)
+                parsed.append(rec)
+            if parsed is not None:
+                out += parsed
         return out, problems
 
     def text_of(self, rec: dict) -> tuple[str | None, str | None]:
