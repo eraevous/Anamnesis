@@ -1,0 +1,324 @@
+"""Docket E comparator: request / reply / filing receipts, compared deterministically.
+
+Reviewer guide. This is the first Exec acceptance trial's tool (DEC-251, item E of the Convention
+synthesis). It answers one question per request: did the reply that came back get filed where the
+requester said it would be, unchanged? It reads only the files a pinned manifest names, checks
+their sha256 digests, and writes a report whose bytes depend only on (code, normalization version,
+manifest). It never writes to the records it reads and never infers authorship by similarity.
+
+Statuses (one per request; secondary facts go in `flags`):
+  matched            one reply, one original filing, equal under the pinned normalization
+  missing_filing     a reply exists (successful read) but nothing was filed
+  mismatch           the filing differs from the reply under the pinned normalization
+  duplicate          more than one reply or filing for the request (replay)
+  late_reply         the reply's event time is after the request's due_by (filing compared, see flags)
+  missing_original   a filing failure is on record, or the filing says it is a reconstruction:
+                     a reconstruction is never classified as the lost original
+  missing_reply      nothing came back and the request was due before the snapshot
+  pending            nothing came back and the request was not yet due (censored, not a failure)
+  unsupported        the route has no unattended consumer; kept in its own denominator
+  unknown            a source could not be read, or the read was ambiguous; never "missing"
+  unpaired           a reply or filing names a request the manifest does not contain
+
+Times are kept apart: `event_times` come from the records (asked, due, replied, filed);
+`observed_at` is the manifest's snapshot time, when the inputs were pinned. The run's own wall
+clock is never written into the report, so two runs produce identical bytes.
+
+Stop conditions (the report's `stop` list; the CLI exits 2): an ungranted input (a path the
+manifest does not list, or one outside its folder), an ambiguous normalization (texts equal only
+under a looser rule than the pinned one), a normalization version the code does not implement,
+and, with --gold, any wrong gold classification (exit 3).
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import sys
+import unicodedata
+from pathlib import Path, PurePosixPath
+
+REPORT_SCHEMA = "anamnesis.docket-e.report/1"
+MANIFEST_SCHEMA = "anamnesis.docket-e.manifest/1"
+NORMALIZATION = "docket-norm/1"
+ROLES = ("requests", "replies", "filings", "receipts", "body")
+STATUSES = (
+    "matched", "missing_filing", "mismatch", "duplicate", "late_reply", "missing_original",
+    "missing_reply", "pending", "unsupported", "unknown", "unpaired",
+)
+UNSUPPORTED_ROUTES = {"none", "unattended-none"}
+
+
+class Stop(Exception):
+    """A condition that halts the trial (re-pin before running again)."""
+
+
+def sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def normalize(text: str) -> str:
+    """docket-norm/1: NFC; CRLF/CR to LF; trailing spaces per line removed; outer blank lines removed.
+
+    Deliberately narrow. Case, inner whitespace, quoting and punctuation all count as differences.
+    """
+    text = unicodedata.normalize("NFC", text).replace("\r\n", "\n").replace("\r", "\n")
+    return "\n".join(line.rstrip() for line in text.split("\n")).strip("\n")
+
+
+def loose(text: str) -> str:
+    """A looser rule used only to detect ambiguity: equal here but not under normalize() stops the run."""
+    return " ".join(unicodedata.normalize("NFKC", text).casefold().split())
+
+
+class Inputs:
+    """The manifest's granted files, read once and digest-checked."""
+
+    def __init__(self, manifest_path: Path):
+        self.root = manifest_path.parent.resolve()
+        raw = manifest_path.read_bytes()
+        self.manifest_sha256 = sha256_bytes(raw)
+        self.manifest = json.loads(raw)
+        if self.manifest.get("schema") != MANIFEST_SCHEMA:
+            raise Stop(f"manifest schema is {self.manifest.get('schema')!r}, expected {MANIFEST_SCHEMA}")
+        if self.manifest.get("normalization") != NORMALIZATION:
+            raise Stop(f"manifest pins normalization {self.manifest.get('normalization')!r}; "
+                       f"this code implements {NORMALIZATION}")
+        self.granted: dict[str, dict] = {}
+        for src in self.manifest["sources"]:
+            if src["role"] not in ROLES:
+                raise Stop(f"unknown source role {src['role']!r}")
+            self._check_path(src["path"])
+            self.granted[src["path"]] = src
+        self.stops: list[str] = []
+
+    def _check_path(self, rel: str) -> None:
+        p = PurePosixPath(rel)
+        if p.is_absolute() or ".." in p.parts:
+            raise Stop(f"ungranted input: {rel!r} is outside the manifest's folder")
+
+    def read(self, rel: str) -> tuple[bytes | None, str | None]:
+        """Return (bytes, None) or (None, reason). Ungranted paths are a stop, not an unknown."""
+        if rel not in self.granted:
+            self.stops.append(f"ungranted input: {rel!r} is not listed in the manifest")
+            return None, "ungranted_input"
+        path = self.root / rel
+        try:
+            data = path.read_bytes()
+        except OSError:
+            return None, "unreadable_source"
+        if sha256_bytes(data) != self.granted[rel]["sha256"]:
+            return None, "digest_mismatch"
+        return data, None
+
+    def records(self, role: str) -> tuple[list[dict], list[str]]:
+        """All JSONL records of a role, each tagged with its locator; plus per-source read problems."""
+        out, problems = [], []
+        for rel, src in sorted(self.granted.items()):
+            if src["role"] != role:
+                continue
+            data, why = self.read(rel)
+            if data is None:
+                problems.append(f"{rel}: {why}")
+                continue
+            for n, line in enumerate(data.decode("utf-8").splitlines(), 1):
+                if not line.strip():
+                    continue
+                rec = json.loads(line)
+                rec["_locator"] = f"{rel}:{n}"
+                rec["_line_sha256"] = sha256_bytes(line.encode("utf-8"))
+                out.append(rec)
+        return out, problems
+
+    def text_of(self, rec: dict) -> tuple[str | None, str | None]:
+        if "text" in rec:
+            return rec["text"], None
+        body = rec.get("body") or {}
+        data, why = self.read(body.get("path", ""))
+        if data is None:
+            return None, why
+        if body.get("sha256") and sha256_bytes(data) != body["sha256"]:
+            return None, "digest_mismatch"
+        try:
+            return data.decode("utf-8"), None
+        except UnicodeDecodeError:
+            return None, "undecodable_source"
+
+
+def _evidence(recs: list[dict]) -> list[dict]:
+    return [{"locator": r["_locator"], "line_sha256": r["_line_sha256"]} for r in recs]
+
+
+def classify(req: dict, replies: list[dict], filings: list[dict], receipts: list[dict],
+             inputs: Inputs, observed_at: str) -> dict:
+    row = {
+        "request_id": req["id"],
+        "recipient": req.get("recipient"),
+        "status": None,
+        "reason": None,
+        "flags": [],
+        "event_times": {
+            "asked_at": req.get("asked_at"),
+            "due_by": req.get("due_by"),
+            "replied_at": sorted(r.get("created_at") for r in replies),
+            "filed_at": sorted(f.get("filed_at") for f in filings),
+            "filing_failed_at": sorted(r.get("at") for r in receipts if r.get("kind") == "filing_failed"),
+        },
+        "observed_at": observed_at,
+        "evidence": _evidence([req] + replies + filings + receipts),
+    }
+
+    def done(status: str, reason: str | None = None) -> dict:
+        row["status"], row["reason"] = status, reason
+        row["flags"].sort()
+        return row
+
+    texts: dict[str, str] = {}
+    for rec in replies + filings:
+        text, why = inputs.text_of(rec)
+        if text is None:
+            where = (rec.get("body") or {}).get("path")
+            return done("unknown", f"{why}: {where or 'inline text'} (cited by {rec['_locator']})")
+        texts[rec["_locator"]] = text
+
+    if req.get("route") in UNSUPPORTED_ROUTES:
+        return done("unsupported", f"route {req.get('route')!r} has no unattended consumer")
+    if not replies:
+        due = req.get("due_by")
+        if due and due < observed_at:
+            return done("missing_reply", "no reply by the snapshot, after due_by")
+        return done("pending", "no reply yet; not due at the snapshot (censored)")
+    if len(replies) > 1 or len(filings) > 1:
+        return done("duplicate", f"{len(replies)} replies, {len(filings)} filings")
+
+    reply = replies[0]
+    late = bool(req.get("due_by") and reply.get("created_at", "") > req["due_by"])
+    if late:
+        row["flags"].append("late_reply")
+
+    failed = [r for r in receipts if r.get("kind") == "filing_failed"]
+    lost_msg = "original filing lost; a reconstruction is not the original"
+    if filings and filings[0].get("provenance") == "reconstruction":
+        row["flags"].append("reconstruction_filed")
+        return done("missing_original", lost_msg)
+    if failed:
+        if not filings:
+            return done("missing_original", lost_msg)
+        # Filed as "original" after a recorded failure: original only if its bytes are the lost ones.
+        lost = {r.get("original_sha256") for r in failed} - {None}
+        if sha256_bytes(texts[filings[0]["_locator"]].encode("utf-8")) not in lost:
+            row["flags"].append("undeclared_reconstruction")
+            return done("missing_original", lost_msg)
+        row["flags"].append("original_recovered_by_digest")
+
+    if not filings:
+        return done("missing_filing", "reply read successfully; no filing found")
+
+    filing = filings[0]
+    if filing.get("filed_at", "") < reply.get("created_at", ""):
+        return done("unknown", "filing event time precedes the reply it copies (untraceable order)")
+
+    a, b = normalize(texts[reply["_locator"]]), normalize(texts[filing["_locator"]])
+    if a != b:
+        if loose(a) == loose(b):
+            inputs.stops.append(f"ambiguous normalization for {req['id']}")
+            return done("unknown", f"equal only under a looser rule than {NORMALIZATION}")
+        return done("mismatch", f"filing differs from reply under {NORMALIZATION}")
+    if late:
+        return done("late_reply", "filed unchanged, but the reply came after due_by")
+    return done("matched")
+
+
+def run(manifest_path: Path, code_version: str = "unpinned") -> dict:
+    inputs = Inputs(manifest_path)
+    observed_at = inputs.manifest["observed_at"]
+    data = {}
+    source_problems = []
+    for role in ("requests", "replies", "filings", "receipts"):
+        data[role], probs = inputs.records(role)
+        source_problems += probs
+
+    by_req = {r["id"]: r for r in data["requests"]}
+    rows = []
+    for rid in sorted(by_req):
+        pick = lambda role: [x for x in data[role] if x.get("request_id") == rid]  # noqa: E731
+        if source_problems:
+            # A whole source failed to read: nothing about any request can be said to be missing.
+            row = classify(by_req[rid], [], [], [], inputs, observed_at)
+            row.update(status="unknown", reason="source unreadable: " + "; ".join(source_problems))
+            rows.append(row)
+            continue
+        rows.append(classify(by_req[rid], pick("replies"), pick("filings"), pick("receipts"),
+                             inputs, observed_at))
+    for role in ("replies", "filings", "receipts"):
+        for x in data[role]:
+            if x.get("request_id") not in by_req:
+                rows.append({"request_id": x.get("request_id"), "status": "unpaired",
+                             "reason": f"{role[:-1]} names no request in the manifest", "flags": [],
+                             "event_times": {}, "observed_at": observed_at,
+                             "evidence": _evidence([x])})
+
+    counts = {s: 0 for s in STATUSES}
+    for r in rows:
+        counts[r["status"]] += 1
+    return {
+        "schema": REPORT_SCHEMA,
+        "code_version": code_version,
+        "normalization": NORMALIZATION,
+        "manifest_sha256": inputs.manifest_sha256,
+        "observed_at": observed_at,
+        "window": inputs.manifest.get("window"),
+        "denominators": {
+            "supported": sum(v for k, v in counts.items() if k not in ("unsupported", "unpaired")),
+            "unsupported": counts["unsupported"],
+        },
+        "counts": counts,
+        "stop": sorted(set(inputs.stops)),
+        "rows": rows,
+    }
+
+
+def check_gold(report: dict, gold: dict) -> list[str]:
+    got = {r["request_id"]: r["status"] for r in report["rows"] if r["status"] != "unpaired"}
+    wrong = [f"{rid}: gold {want}, got {got.get(rid)}" for rid, want in sorted(gold.items())
+             if got.get(rid) != want]
+    wrong += [f"{rid}: classified {st} but absent from gold" for rid, st in sorted(got.items())
+              if rid not in gold]
+    return wrong
+
+
+def dumps(report: dict) -> str:
+    return json.dumps(report, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("manifest", type=Path)
+    ap.add_argument("-o", "--out", type=Path, help="write the report here (default stdout)")
+    ap.add_argument("--code-version", default="unpinned", help="the comparator's commit SHA")
+    ap.add_argument("--gold", type=Path, help="gold statuses {request_id: status}; any miss stops")
+    a = ap.parse_args(argv)
+    try:
+        report = run(a.manifest, a.code_version)
+    except Stop as e:
+        print(f"STOP: {e}", file=sys.stderr)
+        return 2
+    rc = 2 if report["stop"] else 0
+    if a.gold:
+        wrong = check_gold(report, json.loads(a.gold.read_text()))
+        if wrong:
+            report["stop"] = sorted(set(report["stop"]) | {"wrong gold classification: " + w for w in wrong})
+            rc = 3
+    text = dumps(report)
+    if a.out:
+        a.out.write_text(text)
+    else:
+        sys.stdout.write(text)
+    for s in report["stop"]:
+        print(f"STOP: {s}", file=sys.stderr)
+    return rc
+
+
+if __name__ == "__main__":
+    sys.exit(main())

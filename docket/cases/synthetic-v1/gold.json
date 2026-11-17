@@ -1,0 +1,14 @@
+{
+  "RQ-01": "matched",
+  "RQ-02": "missing_filing",
+  "RQ-03": "mismatch",
+  "RQ-04": "duplicate",
+  "RQ-05": "late_reply",
+  "RQ-06": "unknown",
+  "RQ-07": "matched",
+  "RQ-08": "missing_original",
+  "RQ-09": "missing_original",
+  "RQ-10": "unsupported",
+  "RQ-11": "missing_reply",
+  "RQ-12": "pending"
+}

@@ -1,0 +1,50 @@
+{
+  "normalization": "docket-norm/1",
+  "observed_at": "2026-11-18T00:00:00Z",
+  "provenance": "synthetic; written for this repository by claude:anamnesis (producer)",
+  "schema": "anamnesis.docket-e.manifest/1",
+  "sources": [
+    {
+      "path": "bodies/FL-07.txt",
+      "role": "body",
+      "sha256": "4955a4d9b034c1126b0ddbbfd4e2963eed8cf8ed79a2f75d0d5bb5bd32d42e30"
+    },
+    {
+      "note": "deliberately pinned to other bytes: the unreadable-source case",
+      "path": "bodies/RP-06.txt",
+      "role": "body",
+      "sha256": "b3dc35d52f863be6c68b58e89c991737f1494031068d29de6c8b08f704b64c63"
+    },
+    {
+      "path": "bodies/RP-07.txt",
+      "role": "body",
+      "sha256": "8ca0f9207e1814474248105b1b97accebc7b1e702e8babe4a680eb95048679d7"
+    },
+    {
+      "path": "filings.jsonl",
+      "role": "filings",
+      "sha256": "75d383a082a333d3758f743cb2ed825f8f0a6a636ddf2eedede134d101415035"
+    },
+    {
+      "path": "receipts.jsonl",
+      "role": "receipts",
+      "sha256": "0bed9fdc1b07b349ac5060d27b9285708a34aefaa11f28d8f85466c25c4eb434"
+    },
+    {
+      "path": "replies.jsonl",
+      "role": "replies",
+      "sha256": "c18ef31241da5d3f1c5de36f380ecf8bed84ffb340f6e20fbada81dc9b0ad690"
+    },
+    {
+      "path": "requests.jsonl",
+      "role": "requests",
+      "sha256": "651758823ba16cc918b35ced3fddc8cda794bf64f9979b85413064cd564c2a4b"
+    }
+  ],
+  "window": {
+    "eligible_consumer_wakes": 2,
+    "fixed_at": "2026-11-17T22:00:00Z",
+    "note": "fixed before any observation (HO-ANA-20261117-2VK1)",
+    "wall_cap_hours": 24
+  }
+}
