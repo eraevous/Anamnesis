@@ -103,7 +103,11 @@ class Inputs:
         if rel not in self.granted:
             self.stops.append(f"ungranted input: {rel!r} is not listed in the manifest")
             return None, "ungranted_input"
-        path = self.root / rel
+        path = (self.root / rel).resolve()
+        if not path.is_relative_to(self.root):
+            # A listed name that resolves elsewhere (a symlink) is still outside the grant.
+            self.stops.append(f"ungranted input: {rel!r} resolves outside the manifest's folder")
+            return None, "ungranted_input"
         try:
             data = path.read_bytes()
         except OSError:
@@ -132,8 +136,12 @@ class Inputs:
         return out, problems
 
     def text_of(self, rec: dict) -> tuple[str | None, str | None]:
+        if "text" in rec and "body" in rec:
+            return None, "ambiguous_record (both inline text and a body)"
         if "text" in rec:
             return rec["text"], None
+        if "body" not in rec:
+            return None, "no_text (neither inline text nor a body)"
         body = rec.get("body") or {}
         data, why = self.read(body.get("path", ""))
         if data is None:
@@ -251,7 +259,11 @@ def run(manifest_path: Path, code_version: str = "unpinned") -> dict:
             continue
         rows.append(classify(by_req[rid], pick("replies"), pick("filings"), pick("receipts"),
                              inputs, observed_at))
-    for role in ("replies", "filings", "receipts"):
+    if source_problems:
+        # A pinned source failed: the inputs no longer match the pin, so the run cannot stand,
+        # and request membership is unknown, so nothing is called unpaired.
+        inputs.stops.append("pinned source unreadable: " + "; ".join(source_problems))
+    for role in () if source_problems else ("replies", "filings", "receipts"):
         for x in data[role]:
             if x.get("request_id") not in by_req:
                 rows.append({"request_id": x.get("request_id"), "status": "unpaired",

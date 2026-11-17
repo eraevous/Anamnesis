@@ -154,6 +154,36 @@ class StopsAndUnknowns(unittest.TestCase):
             report = comparator.run(work / "manifest.json")
             self.assertEqual({r["status"] for r in report["rows"]}, {"unknown"})
 
+    def test_unreadable_requests_source_stops_and_claims_no_unpaired(self):
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ], [dict(REPLY, text="a")])
+            (Path(d) / "requests.jsonl").unlink()
+            report = comparator.run(m)
+            self.assertEqual(report["rows"], [])
+            self.assertTrue(any("pinned source unreadable" in s for s in report["stop"]))
+            self.assertEqual(comparator.main([str(m), "-o", str(Path(d) / "r")]), 2)
+
+    def test_record_with_both_text_and_body_is_unknown(self):
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ], [dict(REPLY, text="a", body={"path": "gone.txt"})],
+                          extra_sources=[{"role": "body", "path": "gone.txt", "sha256": "0"}])
+            row = comparator.run(m)["rows"][0]
+            self.assertEqual(row["status"], "unknown")
+            self.assertIn("ambiguous_record", row["reason"])
+
+    def test_symlink_out_of_the_manifest_folder_stops(self):
+        with tempfile.TemporaryDirectory() as d:
+            outside = Path(d) / "outside.txt"
+            outside.write_text("a")
+            case = Path(d) / "case"
+            case.mkdir()
+            (case / "body.txt").symlink_to(outside)
+            m = write_set(case, [REQ], [dict(REPLY, body={"path": "body.txt"})], [dict(FILING, text="a")],
+                          extra_sources=[{"role": "body", "path": "body.txt", "sha256": sha("a")}])
+            report = comparator.run(m)
+            self.assertEqual(report["rows"][0]["status"], "unknown")
+            self.assertTrue(any("resolves outside" in s for s in report["stop"]))
+
     def test_filing_before_reply_is_unknown(self):
         with tempfile.TemporaryDirectory() as d:
             m = write_set(Path(d), [REQ], [dict(REPLY, text="a")],
