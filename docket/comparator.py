@@ -206,6 +206,10 @@ def classify(req: dict, replies: list[dict], filings: list[dict], receipts: list
         row["flags"].append("late_reply")
 
     failed = [r for r in receipts if r.get("kind") == "filing_failed"]
+    bad = [f for f in filings if f.get("provenance") not in ("original", "reconstruction")]
+    if bad:
+        return done("unknown", f"filing provenance must be 'original' or 'reconstruction', "
+                               f"got {bad[0].get('provenance')!r} at {bad[0]['_locator']}")
     lost_msg = "original filing lost; a reconstruction is not the original"
     if filings and filings[0].get("provenance") == "reconstruction":
         row["flags"].append("reconstruction_filed")
@@ -247,10 +251,21 @@ def run(manifest_path: Path, code_version: str = "unpinned") -> dict:
         data[role], probs = inputs.records(role)
         source_problems += probs
 
-    by_req = {r["id"]: r for r in data["requests"]}
+    by_req: dict = {}
+    for r in data["requests"]:
+        by_req.setdefault(r["id"], []).append(r)
     rows = []
     for rid in sorted(by_req):
         pick = lambda role: [x for x in data[role] if x.get("request_id") == rid]  # noqa: E731
+        if len(by_req[rid]) > 1:
+            # Two request records with one id: which one governs is unknowable, so nothing is classified.
+            inputs.stops.append(f"duplicate request id {rid!r} ({len(by_req[rid])} records)")
+            row = classify(by_req[rid][0], [], [], [], inputs, observed_at)
+            row.update(status="unknown", reason=f"{len(by_req[rid])} request records share this id",
+                       evidence=_evidence(by_req[rid] + pick("replies") + pick("filings") + pick("receipts")))
+            rows.append(row)
+            continue
+        by_req[rid] = by_req[rid][0]
         if source_problems:
             # A whole source failed to read: nothing about any request can be said to be missing.
             row = classify(by_req[rid], [], [], [], inputs, observed_at)

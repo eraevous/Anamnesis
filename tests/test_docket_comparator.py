@@ -184,6 +184,26 @@ class StopsAndUnknowns(unittest.TestCase):
             self.assertEqual(report["rows"][0]["status"], "unknown")
             self.assertTrue(any("resolves outside" in s for s in report["stop"]))
 
+    def test_duplicate_request_id_stops_and_is_unknown(self):
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ, dict(REQ, route="none")], [dict(REPLY, text="a")],
+                          [dict(FILING, text="a")])
+            report = comparator.run(m)
+            self.assertEqual([r["status"] for r in report["rows"]], ["unknown"])
+            self.assertEqual(report["denominators"]["unsupported"], 0)
+            self.assertTrue(any("duplicate request id" in s for s in report["stop"]))
+
+    def test_filing_without_explicit_provenance_is_unknown(self):
+        for prov in (None, "Original", "copy"):
+            with tempfile.TemporaryDirectory() as d:
+                filing = dict(FILING, text="a")
+                if prov is None:
+                    del filing["provenance"]
+                else:
+                    filing["provenance"] = prov
+                m = write_set(Path(d), [REQ], [dict(REPLY, text="a")], [filing])
+                self.assertEqual(comparator.run(m)["rows"][0]["status"], "unknown", prov)
+
     def test_filing_before_reply_is_unknown(self):
         with tempfile.TemporaryDirectory() as d:
             m = write_set(Path(d), [REQ], [dict(REPLY, text="a")],
