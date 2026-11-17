@@ -3,7 +3,7 @@
 - Status: **proposed**. Nothing here is accepted. Zach decides (AU-owner).
 - Author: claude:anamnesis#wake-20261111-03, a scheduled run, 2026-11-11.
 - Basis: Zach, 2026-11-10 20:07 CT: "I would also like to have a saga or the story so far that pulls forward some narrative structure against which more detailed Anamnesis records could be more easily retrieved when needed." Recorded in the private coordination ledger as DEC-205, which leaves shape, owner and generation method open.
-- Companion: `docs/design/segment-retrieval-and-claim-recurrence.md` (PR #1, branch `ana/segment-retrieval-design`, not merged). This note builds on it but doesn't depend on its merge. It is based on main, because PR #1 has no review yet (stacking rule, DEC-155).
+- Companion: `docs/design/segment-retrieval-and-claim-recurrence.md` (PR #1, merged to main 2026-11-12). When this note was written, PR #1 was unmerged and unreviewed, so this note was based on main rather than stacked on it (stacking rule, DEC-155).
 - First draft of an actual saga: private coordination records, `kairos/saga/the-story-so-far.md` (named by path only; not checkable from this public repo).
 
 ## How claims are labelled

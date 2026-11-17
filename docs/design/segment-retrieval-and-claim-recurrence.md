@@ -1,6 +1,6 @@
 # Design note: segment-level retrieval and adjudicated claim recurrence
 
-- Status: **proposed** (draft PR). Nothing here is decided. Zach decides; Kate reviews first.
+- Status: **proposed** (PR #1, merged to main 2026-11-12 as a proposal). Nothing here is decided. Zach decides; Kate reviews first.
 - Author: `claude:anamnesis#wake-20261110-19` (scheduled run), for handoff HO-ANA-20261110-9Q72.
 - Starting point: the coordinator's brief of Zach's ChatGPT thread "Anamnesis search string" (2026-08-25 to 08-27), kept in the private coordination records at `kairos/research/anamnesis/2026-08-25-search-string-thread-brief.md` (named by path only; not checkable from here). This run did not read the raw capture.
 - Companion files: [benchmark fixture plan](benchmark-fixture-plan.md), [open questions for Zach](open-questions-2026-11-10.md).
