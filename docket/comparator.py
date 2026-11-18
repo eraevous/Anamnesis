@@ -40,6 +40,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import sys
 import unicodedata
 from datetime import datetime, timezone
@@ -74,18 +75,32 @@ def normalize(text: str) -> str:
     return "\n".join(line.rstrip() for line in text.split("\n")).strip("\n")
 
 
+# RFC 3339 section 5.6 date-time: full date, "T", full time with optional fraction, and an offset.
+_RFC3339 = re.compile(r"\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?P<off>[Zz]|[+-]\d{2}:\d{2})",
+                      re.ASCII)
+
+
 def instant(value) -> datetime | None:
     """An RFC 3339 timestamp as a UTC instant, or None if it is missing, malformed or has no offset.
 
     Event times are compared as instants, never as strings: 01:00-14:00 is after 13:00Z.
+    The syntax is checked against RFC 3339 first (Codex review of e9358b4): `fromisoformat()` alone
+    accepts basic-format times such as 20261117T130000Z and folds an impossible offset like +00:60
+    into +01:00. Component ranges are then checked by the datetime constructor.
     """
     if not isinstance(value, str):
         return None
+    m = _RFC3339.fullmatch(value)
+    if m is None:
+        return None
+    off = m.group("off")
+    if off not in ("Z", "z") and (int(off[1:3]) > 23 or int(off[4:6]) > 59):
+        return None
     try:
-        dt = datetime.fromisoformat(value)
+        dt = datetime.fromisoformat(value[:-1] + "+00:00" if off in ("Z", "z") else value)
     except ValueError:
         return None
-    return dt.astimezone(timezone.utc) if dt.tzinfo is not None else None
+    return dt.astimezone(timezone.utc)
 
 
 def loose(text: str) -> str:
@@ -253,6 +268,12 @@ def classify(req: dict, replies: list[dict], filings: list[dict], receipts: list
     # Times are parsed once, as UTC instants; a compared time that will not parse is untraceable.
     bad_time = None
     due = None
+    asked = None
+    if req.get("asked_at") is not None or replies or filings:
+        # A reply or filing can only be placed in the request's interval if asked_at is readable.
+        asked = instant(req.get("asked_at"))
+        if asked is None:
+            bad_time = f"asked_at {req.get('asked_at')!r} at {req['_locator']}"
     if req.get("due_by") is not None:
         due = instant(req["due_by"])
         if due is None:
@@ -294,9 +315,18 @@ def classify(req: dict, replies: list[dict], filings: list[dict], receipts: list
     if bad_time:
         untraceable = f"event time is not an RFC 3339 instant with an offset: {bad_time}"
         inputs.stops.append(f"untraceable evidence for {req['id']}: unreadable time, {bad_time}")
-    elif replies:
-        first_reply = min(reply_at.values())
-        if any(t < first_reply for t in filed_at.values()):
+    else:
+        # Every event must sit in request <= reply <= filing <= snapshot (Codex security review of
+        # e9358b4): evidence dated before the request or after the snapshot cannot be traced to it.
+        snapshot = instant(observed_at)
+        events = list(reply_at.values()) + list(filed_at.values())
+        if any(t < asked for t in events):
+            untraceable = "event time precedes the request (untraceable order)"
+            inputs.stops.append(f"untraceable evidence for {req['id']}: event before asked_at")
+        elif any(t > snapshot for t in events):
+            untraceable = "event time is after the snapshot's observed_at (untraceable order)"
+            inputs.stops.append(f"untraceable evidence for {req['id']}: event after observed_at")
+        elif replies and any(t < min(reply_at.values()) for t in filed_at.values()):
             untraceable = "filing event time precedes the reply it copies (untraceable order)"
             inputs.stops.append(f"untraceable evidence for {req['id']}: filing precedes every reply")
     ambiguous = False

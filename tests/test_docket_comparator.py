@@ -385,6 +385,49 @@ class StopsAndUnknowns(unittest.TestCase):
                 self.assertEqual(report["rows"][0]["status"], "unknown", bad)
                 self.assertTrue(any("untraceable evidence" in s for s in report["stop"]), bad)
 
+    # Codex review of e9358b4: strict RFC 3339 syntax, and request <= reply <= filing <= snapshot.
+    def test_non_rfc3339_time_is_untraceable_not_normalized(self):
+        for bad in ("2026-11-17T13:00:00+00:60", "20261117T130000Z", "2026-11-17T13:00:00+0000",
+                    "2026-11-17 13:00:00Z", "2026-11-17T13:00Z"):
+            with tempfile.TemporaryDirectory() as d:
+                m = write_set(Path(d), [REQ], [dict(REPLY, text="a", created_at=bad)],
+                              [dict(FILING, text="a")])
+                report = comparator.run(m)
+                self.assertEqual(report["rows"][0]["status"], "unknown", bad)
+                self.assertTrue(any("untraceable evidence" in s for s in report["stop"]), bad)
+
+    def test_valid_rfc3339_forms_still_parse(self):
+        for good in ("2026-11-17T13:00:00Z", "2026-11-17t13:00:00z", "2026-11-17T13:00:00.25+00:00",
+                     "2026-11-17T08:00:00-05:00"):
+            self.assertIsNotNone(comparator.instant(good), good)
+
+    def test_event_before_the_request_is_untraceable(self):
+        for reply_at, filed_at in (("2026-11-17T11:00:00Z", "2026-11-17T14:00:00Z"),
+                                   ("2026-11-17T10:00:00Z", "2026-11-17T11:00:00Z")):
+            with tempfile.TemporaryDirectory() as d:
+                m = write_set(Path(d), [REQ], [dict(REPLY, text="a", created_at=reply_at)],
+                              [dict(FILING, text="a", filed_at=filed_at)])
+                report = comparator.run(m)
+                self.assertEqual(report["rows"][0]["status"], "unknown")
+                self.assertTrue(any("before asked_at" in s for s in report["stop"]))
+                self.assertEqual(comparator.main([str(m)]), 2)
+
+    def test_event_after_the_snapshot_is_untraceable(self):
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ], [dict(REPLY, text="a")],
+                          [dict(FILING, text="a", filed_at="2026-11-18T00:00:01Z")])
+            report = comparator.run(m)
+            self.assertEqual(report["rows"][0]["status"], "unknown")
+            self.assertTrue(any("after observed_at" in s for s in report["stop"]))
+
+    def test_missing_asked_at_with_evidence_is_untraceable(self):
+        with tempfile.TemporaryDirectory() as d:
+            req = {k: v for k, v in REQ.items() if k != "asked_at"}
+            m = write_set(Path(d), [req], [dict(REPLY, text="a")], [dict(FILING, text="a")])
+            report = comparator.run(m)
+            self.assertEqual(report["rows"][0]["status"], "unknown")
+            self.assertTrue(any("untraceable evidence" in s for s in report["stop"]))
+
     def test_duplicate_manifest_path_is_refused(self):
         with tempfile.TemporaryDirectory() as d:
             m = write_set(Path(d), [REQ])
