@@ -345,6 +345,66 @@ class StopsAndUnknowns(unittest.TestCase):
             self.assertIn("duplicate_replies", row["flags"])
             self.assertTrue(any("untraceable evidence" in s for s in report["stop"]))
 
+    # Codex security review of d95b0c6: role grants, instants, duplicate grants.
+
+    def test_body_must_be_granted_as_a_body(self):
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ])
+            req_src = next(s for s in json.loads(m.read_text())["sources"] if s["role"] == "requests")
+            cite = {"path": "requests.jsonl", "sha256": req_src["sha256"]}
+            m = write_set(Path(d), [REQ], [dict(REPLY, body=cite)], [dict(FILING, body=cite)])
+            report = comparator.run(m)
+            self.assertEqual(report["rows"][0]["status"], "unknown")
+            self.assertTrue(any("not granted as a body" in s for s in report["stop"]))
+            self.assertEqual(comparator.main([str(m), "-o", str(Path(d) / "r.json")]), 2)
+
+    def test_order_is_compared_as_instants_not_strings(self):
+        with tempfile.TemporaryDirectory() as d:
+            # 01:00-14:00 is 15:00Z; the filing at 13:00Z precedes it.
+            m = write_set(Path(d), [dict(REQ, due_by="2026-11-18T18:00:00Z")],
+                          [dict(REPLY, text="a", created_at="2026-11-18T01:00:00-14:00")],
+                          [dict(FILING, text="a", filed_at="2026-11-18T13:00:00Z")])
+            report = comparator.run(m)
+            self.assertEqual(report["rows"][0]["status"], "unknown")
+            self.assertTrue(any("untraceable evidence" in s for s in report["stop"]))
+
+    def test_lateness_is_compared_as_instants(self):
+        with tempfile.TemporaryDirectory() as d:
+            # 12:00-08:00 is 20:00Z, after due_by 18:00Z, though the string sorts earlier.
+            m = write_set(Path(d), [REQ], [dict(REPLY, text="a", created_at="2026-11-17T12:00:00-08:00")],
+                          [dict(FILING, text="a", filed_at="2026-11-17T21:00:00Z")])
+            row = comparator.run(m)["rows"][0]
+            self.assertEqual(row["status"], "late_reply")
+
+    def test_unparseable_or_offsetless_time_is_untraceable(self):
+        for bad in ("yesterday", "2026-11-17T13:00:00"):
+            with tempfile.TemporaryDirectory() as d:
+                m = write_set(Path(d), [REQ], [dict(REPLY, text="a", created_at=bad)],
+                              [dict(FILING, text="a")])
+                report = comparator.run(m)
+                self.assertEqual(report["rows"][0]["status"], "unknown", bad)
+                self.assertTrue(any("untraceable evidence" in s for s in report["stop"]), bad)
+
+    def test_duplicate_manifest_path_is_refused(self):
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ])
+            man = json.loads(m.read_text())
+            req_src = next(s for s in man["sources"] if s["role"] == "requests")
+            man["sources"].append(dict(req_src, role="body"))
+            m.write_text(json.dumps(man))
+            with self.assertRaises(comparator.Stop):
+                comparator.run(m)
+            self.assertEqual(comparator.main([str(m)]), 2)
+
+    def test_manifest_missing_a_required_role_is_refused(self):
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ])
+            man = json.loads(m.read_text())
+            man["sources"] = [s for s in man["sources"] if s["role"] != "requests"]
+            m.write_text(json.dumps(man))
+            with self.assertRaises(comparator.Stop):
+                comparator.run(m)
+
     def test_orphan_reply_is_unpaired(self):
         with tempfile.TemporaryDirectory() as d:
             m = write_set(Path(d), [REQ], [dict(REPLY, request_id="RQ-NONE", text="a")])

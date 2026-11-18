@@ -25,11 +25,14 @@ Times are kept apart: `event_times` come from the records (asked, due, replied, 
 clock is never written into the report, so two runs produce identical bytes.
 
 Stop conditions (the report's `stop` list; the CLI exits 2): an ungranted input (a path the
-manifest does not list, or one outside its folder), an ambiguous normalization (texts equal only
-under a looser rule than the pinned one), untraceable evidence (a filing timed before every
-reply), an unreadable pinned source, a normalization version the code does not implement, and,
-with --gold, any wrong gold classification (exit 3). Every stop check runs for every request
-before its status is chosen, so no status can hide a stop or a secondary fact.
+manifest does not list, one outside its folder, or a record source cited as a body), an ambiguous
+normalization (texts equal only under a looser rule than the pinned one), untraceable evidence (a
+filing timed before every reply, or a compared event time that is not an RFC 3339 instant with an
+offset; times are compared as UTC instants, never as strings), an unreadable pinned source, a
+normalization version the code does not implement, a manifest that lists a path twice or lacks one
+of the four record roles, and, with --gold, any wrong gold classification (exit 3). Every stop
+check runs for every request before its status is chosen, so no status can hide a stop or a
+secondary fact.
 """
 
 from __future__ import annotations
@@ -39,12 +42,14 @@ import hashlib
 import json
 import sys
 import unicodedata
+from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 
 REPORT_SCHEMA = "anamnesis.docket-e.report/1"
 MANIFEST_SCHEMA = "anamnesis.docket-e.manifest/1"
 NORMALIZATION = "docket-norm/1"
 ROLES = ("requests", "replies", "filings", "receipts", "body")
+RECORD_ROLES = ("requests", "replies", "filings", "receipts")
 STATUSES = (
     "matched", "missing_filing", "mismatch", "duplicate", "late_reply", "missing_original",
     "missing_reply", "pending", "unsupported", "unknown", "unpaired",
@@ -67,6 +72,20 @@ def normalize(text: str) -> str:
     """
     text = unicodedata.normalize("NFC", text).replace("\r\n", "\n").replace("\r", "\n")
     return "\n".join(line.rstrip() for line in text.split("\n")).strip("\n")
+
+
+def instant(value) -> datetime | None:
+    """An RFC 3339 timestamp as a UTC instant, or None if it is missing, malformed or has no offset.
+
+    Event times are compared as instants, never as strings: 01:00-14:00 is after 13:00Z.
+    """
+    if not isinstance(value, str):
+        return None
+    try:
+        dt = datetime.fromisoformat(value)
+    except ValueError:
+        return None
+    return dt.astimezone(timezone.utc) if dt.tzinfo is not None else None
 
 
 def loose(text: str) -> str:
@@ -92,7 +111,13 @@ class Inputs:
             if src["role"] not in ROLES:
                 raise Stop(f"unknown source role {src['role']!r}")
             self._check_path(src["path"])
+            if src["path"] in self.granted:
+                # A second grant for one path would silently replace the first (and its role).
+                raise Stop(f"manifest lists {src['path']!r} more than once")
             self.granted[src["path"]] = src
+        for role in RECORD_ROLES:
+            if not any(s["role"] == role for s in self.granted.values()):
+                raise Stop(f"manifest grants no {role} source")
         self.stops: list[str] = []
 
     def _check_path(self, rel: str) -> None:
@@ -165,7 +190,13 @@ class Inputs:
         if "body" not in rec:
             return None, "no_text (neither inline text nor a body)"
         body = rec.get("body") or {}
-        data, why = self.read(body.get("path", ""))
+        rel = body.get("path", "")
+        if rel in self.granted and self.granted[rel]["role"] != "body":
+            # A record source cited as a body would promote unrelated bytes to filed evidence.
+            self.stops.append(f"ungranted input: {rel!r} is not granted as a body "
+                              f"(role {self.granted[rel]['role']!r})")
+            return None, "ungranted_input"
+        data, why = self.read(rel)
         if data is None:
             return None, why
         if body.get("sha256") and sha256_bytes(data) != body["sha256"]:
@@ -191,9 +222,10 @@ def classify(req: dict, replies: list[dict], filings: list[dict], receipts: list
         "event_times": {
             "asked_at": req.get("asked_at"),
             "due_by": req.get("due_by"),
-            "replied_at": sorted(r.get("created_at") for r in replies),
-            "filed_at": sorted(f.get("filed_at") for f in filings),
-            "filing_failed_at": sorted(r.get("at") for r in receipts if r.get("kind") == "filing_failed"),
+            "replied_at": sorted((r.get("created_at") for r in replies), key=str),
+            "filed_at": sorted((f.get("filed_at") for f in filings), key=str),
+            "filing_failed_at": sorted((r.get("at") for r in receipts if r.get("kind") == "filing_failed"),
+                                       key=str),
         },
         "observed_at": observed_at,
         "evidence": _evidence([req] + replies + filings + receipts),
@@ -218,8 +250,24 @@ def classify(req: dict, replies: list[dict], filings: list[dict], receipts: list
         texts[rec["_locator"]] = text
 
     # Secondary facts: each is observable from the records alone, whatever the primary status.
-    due = req.get("due_by")
-    late = bool(due and any(r.get("created_at", "") > due for r in replies))
+    # Times are parsed once, as UTC instants; a compared time that will not parse is untraceable.
+    bad_time = None
+    due = None
+    if req.get("due_by") is not None:
+        due = instant(req["due_by"])
+        if due is None:
+            bad_time = f"due_by {req['due_by']!r} at {req['_locator']}"
+    reply_at = {}
+    for r in replies:
+        reply_at[r["_locator"]] = t = instant(r.get("created_at"))
+        if t is None and bad_time is None:
+            bad_time = f"created_at {r.get('created_at')!r} at {r['_locator']}"
+    filed_at = {}
+    for f in filings:
+        filed_at[f["_locator"]] = t = instant(f.get("filed_at"))
+        if t is None and bad_time is None:
+            bad_time = f"filed_at {f.get('filed_at')!r} at {f['_locator']}"
+    late = bool(due and any(t and t > due for t in reply_at.values()))
     failed = [r for r in receipts if r.get("kind") == "filing_failed"]
     if late:
         row["flags"].append("late_reply")
@@ -242,11 +290,14 @@ def classify(req: dict, replies: list[dict], filings: list[dict], receipts: list
         row["flags"].append("original_recovered_by_digest" if recovered else "undeclared_reconstruction")
 
     # Mandatory stop checks, each evaluated independently of the others and of any status.
-    untraceable = False
-    if replies:
-        first_reply = min(r.get("created_at", "") for r in replies)
-        if any(f.get("filed_at", "") < first_reply for f in filings):
-            untraceable = True
+    untraceable = None
+    if bad_time:
+        untraceable = f"event time is not an RFC 3339 instant with an offset: {bad_time}"
+        inputs.stops.append(f"untraceable evidence for {req['id']}: unreadable time, {bad_time}")
+    elif replies:
+        first_reply = min(reply_at.values())
+        if any(t < first_reply for t in filed_at.values()):
+            untraceable = "filing event time precedes the reply it copies (untraceable order)"
             inputs.stops.append(f"untraceable evidence for {req['id']}: filing precedes every reply")
     ambiguous = False
     if len(replies) == 1 and len(filings) == 1:
@@ -265,14 +316,14 @@ def classify(req: dict, replies: list[dict], filings: list[dict], receipts: list
         return done("unknown", f"filing provenance must be 'original' or 'reconstruction', "
                                f"got {bad[0].get('provenance')!r} at {bad[0]['_locator']}")
     if untraceable:
-        return done("unknown", "filing event time precedes the reply it copies (untraceable order)")
+        return done("unknown", untraceable)
     if ambiguous:
         return done("unknown", f"equal only under a looser rule than {NORMALIZATION}")
 
     if req.get("route") in UNSUPPORTED_ROUTES:
         return done("unsupported", f"route {req.get('route')!r} has no unattended consumer")
     if not replies:
-        if due and due < observed_at:
+        if due and due < instant(observed_at):
             return done("missing_reply", "no reply by the snapshot, after due_by")
         return done("pending", "no reply yet; not due at the snapshot (censored)")
     if len(replies) > 1 or len(filings) > 1:
@@ -300,6 +351,8 @@ def classify(req: dict, replies: list[dict], filings: list[dict], receipts: list
 def run(manifest_path: Path, code_version: str = "unpinned") -> dict:
     inputs = Inputs(manifest_path)
     observed_at = inputs.manifest["observed_at"]
+    if instant(observed_at) is None:
+        raise Stop(f"manifest observed_at {observed_at!r} is not an RFC 3339 instant with an offset")
     data = {}
     source_problems = []
     for role in ("requests", "replies", "filings", "receipts"):
