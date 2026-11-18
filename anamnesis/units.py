@@ -226,6 +226,9 @@ class ConversationMessageBundle:
     project_name: str | None = None
     memory_scope: str | None = None
     conversation_template_id: str | None = None
+    # node id -> parent node id for nodes that carry no message (they become no unit). Kept so a
+    # branch path can be walked through them (anamnesis addition; omitted from to_dict when empty).
+    skipped_node_parents: Dict[str, str | None] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         payload: Dict[str, Any] = {
@@ -245,6 +248,7 @@ class ConversationMessageBundle:
             "project_name": self.project_name,
             "memory_scope": self.memory_scope,
             "conversation_template_id": self.conversation_template_id,
+            "skipped_node_parents": dict(self.skipped_node_parents) or None,
         }
         payload.update(
             {key: value for key, value in optional.items() if value is not None}
@@ -270,6 +274,7 @@ class ConversationMessageBundle:
             project_name=payload.get("project_name"),
             memory_scope=payload.get("memory_scope"),
             conversation_template_id=payload.get("conversation_template_id"),
+            skipped_node_parents=dict(payload.get("skipped_node_parents") or {}),
             messages=[MessageUnit.from_dict(item) for item in payload["messages"]],
         )
 
@@ -376,12 +381,14 @@ def build_conversation_message_bundle(
         conversation.get("default_model_slug")
     )
     messages: List[MessageUnit] = []
+    skipped_parents: Dict[str, str | None] = {}
 
     for source_index, (mapping_key, node_value) in enumerate(mapping.items()):
         if not isinstance(node_value, dict):
             continue
         message = node_value.get("message")
         if not isinstance(message, dict):
+            skipped_parents[str(mapping_key)] = _optional_string(node_value.get("parent"))
             continue
         node_id = str(mapping_key)
         message_id = _optional_string(message.get("id")) or node_id
@@ -491,6 +498,7 @@ def build_conversation_message_bundle(
             conversation.get("conversation_template_id")
         ),
         messages=messages,
+        skipped_node_parents=skipped_parents,
     )
 
 

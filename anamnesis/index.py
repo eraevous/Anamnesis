@@ -99,14 +99,14 @@ class MessageIndex:
         with self.con:
             for bundle in bundles:
                 for unit in bundle.messages:
-                    if not unit.text:
-                        continue
                     old = self.con.execute(
                         "SELECT rowid FROM units WHERE message_unit_id = ?", (unit.message_unit_id,)
                     ).fetchone()
-                    if old:
+                    if old:  # replace, even when the new version has no text
                         self.con.execute("DELETE FROM units_fts WHERE rowid = ?", old)
                         self.con.execute("DELETE FROM units WHERE rowid = ?", old)
+                    if not unit.text:
+                        continue
                     cur = self.con.execute(
                         "INSERT INTO units(message_unit_id, conversation_id, title, branch_status,"
                         " author_role, create_time, model_slug, content_hash)"

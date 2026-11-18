@@ -5,7 +5,7 @@ overlap: (u1, a2), (a2, u3), (u3, a4), ... Every branch is walked, so an edited 
 alternate gets its own Cells; a Cell is `active` only if both halves are active.
 
 Reviewer guide:
-- "Consecutive" skips nodes with no text and system/developer instructions (they are not turns of
+- "Consecutive" skips nodes with no text, nodes with no message at all, and system/developer instructions (they are not turns of
   the conversation); the pair is the nearest texted ancestor and the node. This is the shape the
   embedding probe used (experiments/embedding-probe `rolling_cells`), extended to all branches.
 - `direction` is `human->model`, `model->human` or `other` (tool output, unknown roles).
@@ -72,9 +72,12 @@ def cells_for_bundle(bundle: ConversationMessageBundle, platform: str = "chatgpt
             if parent in turn:
                 return by_node[parent]
             unit = by_node.get(parent)
-            if unit is None:  # parent node has no message (e.g. the export's root)
+            if unit is not None:
+                parent = unit.parent_node_id
+            elif parent in bundle.skipped_node_parents:  # a node with no message: walk through it
+                parent = bundle.skipped_node_parents[parent]
+            else:  # not in the export at all
                 return None
-            parent = unit.parent_node_id
         return None
 
     cells: List[Cell] = []

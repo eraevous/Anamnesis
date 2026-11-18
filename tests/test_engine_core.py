@@ -202,7 +202,32 @@ class IndexGoldTests(unittest.TestCase):
                 self.assertTrue(ix.search("quillfern"))
 
 
+class ReplaceTests(unittest.TestCase):
+    def test_readding_a_unit_with_no_text_removes_its_old_row(self):
+        # Codex finding on 0a273ff: an emptied unit stayed searchable with its old text.
+        before = conv("conv-r", (("user", "where is the answer"), ("assistant", "answer quillfern")))
+        after = json.loads(json.dumps(before))
+        after["mapping"]["m1"]["message"]["content"]["parts"] = [""]
+        with MessageIndex() as ix:
+            ix.add(bundles_from_export_from(before))
+            ix.add(bundles_from_export_from(after))
+            self.assertEqual(ix.search("quillfern"), [])
+            self.assertEqual(ix.count(), 1)
+
+
 class CellTests(unittest.TestCase):
+    def test_cells_walk_through_nodes_with_no_message(self):
+        # Codex finding on 0a273ff: user -> (message: null) -> assistant produced no Cell.
+        c = conv("conv-n", (("user", "ask"), ("assistant", "reply")))
+        c["mapping"]["gap"] = {"id": "gap", "message": None, "parent": "m0", "children": ["m1"]}
+        c["mapping"]["m0"]["children"] = ["gap"]
+        c["mapping"]["m1"]["parent"] = "gap"
+        (b,) = bundles_from_export_from(c)
+        cells = cells_for_bundle(b)
+        self.assertEqual([(x.first.split(":")[-1], x.second.split(":")[-1], x.direction) for x in cells],
+                         [("m0", "m1", "human->model")])
+        self.assertEqual(type(b).from_dict(b.to_dict()).skipped_node_parents, b.skipped_node_parents)
+
     def test_rolling_cells_overlap_and_cover_alternates(self):
         fx = next(f for f in FIXTURES if f.name == "F-11")
         (bundle,) = bundles_from_export(fx / "conversation.json")
@@ -217,7 +242,7 @@ class CellTests(unittest.TestCase):
             touching = [c for c in cells if uid in (c.first, c.second)]
             self.assertTrue(touching, uid)
             self.assertTrue(all(c.branch_status == "alternate" for c in touching))
-        for c in cells:  # one branch path: second's parent chain reaches first
+        for c in cells:  # one branch path: second's parent is first (no message-less nodes here)
             self.assertEqual(units[c.second].parent_node_id, units[c.first].node_id)
             self.assertIn(c.direction, {"human->model", "model->human"})
             self.assertEqual(c.platform, "chatgpt")
