@@ -17,8 +17,8 @@ Reviewer guide:
 
 from __future__ import annotations
 
-import re
 import sqlite3
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List
@@ -43,7 +43,24 @@ CREATE TABLE IF NOT EXISTS units (
 CREATE VIRTUAL TABLE IF NOT EXISTS units_fts USING fts5(text, tokenize = 'unicode61');
 """
 
-_WORD = re.compile(r"\w+", re.UNICODE)
+def _is_word_char(ch: str) -> bool:
+    # Letters, digits and "_" (as in \w), plus combining marks, so a decomposed accent
+    # ("cafe" + U+0301) stays inside its word, as FTS5's unicode61 tokenizer keeps it.
+    return ch.isalnum() or ch == "_" or unicodedata.category(ch).startswith("M")
+
+
+def query_terms(query: str) -> List[str]:
+    """Words of a free-text query, split the way unicode61 splits the indexed text."""
+    terms, current = [], []
+    for ch in query:
+        if _is_word_char(ch):
+            current.append(ch)
+        elif current:
+            terms.append("".join(current))
+            current = []
+    if current:
+        terms.append("".join(current))
+    return terms
 # Dropped from a query unless nothing else is left, so "in" or "a" alone never makes a hit.
 STOPWORDS = frozenset("a an the in of to on and or for is it".split())
 
@@ -76,10 +93,11 @@ class MessageIndex:
         self.path = str(path)
         self.con = sqlite3.connect(self.path)
         self.con.executescript(_SCHEMA)
-        self.con.execute(
-            "INSERT OR IGNORE INTO meta(key, value) VALUES ('schema_version', ?)",
-            (INDEX_SCHEMA_VERSION,),
-        )
+        with self.con:  # commit now, so an idle index never holds the write lock
+            self.con.execute(
+                "INSERT OR IGNORE INTO meta(key, value) VALUES ('schema_version', ?)",
+                (INDEX_SCHEMA_VERSION,),
+            )
         found = self.con.execute("SELECT value FROM meta WHERE key='schema_version'").fetchone()[0]
         if found != INDEX_SCHEMA_VERSION:
             raise ValueError(f"index schema {found!r} is not {INDEX_SCHEMA_VERSION!r}; rebuild it")
@@ -132,7 +150,7 @@ class MessageIndex:
         return self.con.execute("SELECT count(*) FROM units").fetchone()[0]
 
     def search(self, query: str, *, limit: int = 10, active_only: bool = False) -> List[Hit]:
-        words = _WORD.findall(query)
+        words = query_terms(query)
         words = [w for w in words if w.lower() not in STOPWORDS] or words
         if not words:
             return []

@@ -202,6 +202,27 @@ class IndexGoldTests(unittest.TestCase):
                 self.assertTrue(ix.search("quillfern"))
 
 
+class CopilotRoundOneTests(unittest.TestCase):
+    def test_idle_index_does_not_lock_the_file(self):
+        # Copilot finding on 776fd0d: the constructor left a write transaction open.
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "index.sqlite"
+            with MessageIndex(path) as first:
+                first.search("anything")
+                with MessageIndex(path) as second:
+                    self.assertEqual(second.count(), 0)
+
+    def test_composed_and_decomposed_accents_find_the_same_text(self):
+        # Copilot finding on 776fd0d: "cafe\u0301s" was split into "cafe" OR "s" and missed.
+        composed, decomposed = "caf\u00e9s", "cafe\u0301s"
+        for indexed in (composed, decomposed):
+            with MessageIndex() as ix:
+                ix.add(bundles_from_export_from(conv("conv-u", (("user", f"les {indexed} ouverts"),))))
+                for query in (composed, decomposed):
+                    with self.subTest(indexed=ascii(indexed), query=ascii(query)):
+                        self.assertEqual(len(ix.search(query)), 1)
+
+
 class ReplaceTests(unittest.TestCase):
     def test_readding_a_unit_with_no_text_removes_its_old_row(self):
         # Codex finding on 0a273ff: an emptied unit stayed searchable with its old text.
