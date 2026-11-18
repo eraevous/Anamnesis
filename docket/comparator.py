@@ -30,7 +30,8 @@ normalization (texts equal only under a looser rule than the pinned one), untrac
 filing timed before every reply, or a compared event time that is not an RFC 3339 instant with an
 offset; times are compared as UTC instants, never as strings), an unreadable pinned source, a
 normalization version the code does not implement, a manifest that lists a path twice or lacks one
-of the four record roles, and, with --gold, any wrong gold classification (exit 3). Every stop
+of the four record roles, and, with --gold, any wrong gold classification (exit 3). The CLI also
+refuses (exit 2) an --out path that is the manifest or a granted source, by path or link. Every stop
 check runs for every request before its status is chosen, so no status can hide a stop or a
 secondary fact.
 """
@@ -115,6 +116,47 @@ def loose(text: str) -> str:
     return " ".join(unicodedata.normalize("NFKC", text).casefold().split())
 
 
+def _nonempty_str(v) -> bool:
+    return isinstance(v, str) and v != ""
+
+
+def record_shape_problem(role: str, rec: dict) -> str | None:
+    """Why a record's fields don't have the shapes the comparator relies on, or None.
+
+    Checked when a record is read (Copilot review of ab49108): a digest-valid record such as
+    {"text": 42} or {"body": "x"} must be a malformed record of its source, not a wrong status or a
+    crash. Times are not checked here; they are checked, and stop the run, where they are compared.
+    """
+    if role == "requests":
+        if not _nonempty_str(rec.get("id")):
+            return "request id must be a non-empty string"
+        for key in ("route", "recipient"):
+            if key in rec and rec[key] is not None and not isinstance(rec[key], str):
+                return f"{key} must be a string"
+        return None
+    if not _nonempty_str(rec.get("request_id")):
+        return "request_id must be a non-empty string"
+    if role == "receipts":
+        if not isinstance(rec.get("kind"), str):
+            return "receipt kind must be a string"
+        if "original_sha256" in rec and rec["original_sha256"] is not None \
+                and not isinstance(rec["original_sha256"], str):
+            return "original_sha256 must be a string"
+        return None
+    if "text" in rec and not isinstance(rec["text"], str):
+        return "text must be a string"
+    if "body" in rec:
+        body = rec["body"]
+        if not isinstance(body, dict) or not _nonempty_str(body.get("path")):
+            return "body must be an object with a non-empty string path"
+        if "sha256" in body and body["sha256"] is not None and not isinstance(body["sha256"], str):
+            return "body sha256 must be a string"
+    if role == "filings" and "provenance" in rec and rec["provenance"] is not None \
+            and not isinstance(rec["provenance"], str):
+        return "provenance must be a string"
+    return None
+
+
 class Inputs:
     """The manifest's granted files, read once and digest-checked."""
 
@@ -197,6 +239,11 @@ class Inputs:
                     problems.append(f"{rel}:{n}: malformed_record (not an object)")
                     parsed = None
                     break
+                shape = record_shape_problem(role, rec)
+                if shape:
+                    problems.append(f"{rel}:{n}: malformed_record ({shape})")
+                    parsed = None
+                    break
                 rec["_locator"] = f"{rel}:{n}"
                 rec["_line_sha256"] = sha256_bytes(line.encode("utf-8"))
                 parsed.append(rec)
@@ -231,6 +278,31 @@ class Inputs:
 
 def _evidence(recs: list[dict]) -> list[dict]:
     return [{"locator": r["_locator"], "line_sha256": r["_line_sha256"]} for r in recs]
+
+
+def record_facts(replies: list[dict], filings: list[dict], receipts: list[dict]) -> tuple[dict, list[str]]:
+    """Event times and flags that the records state on their own, without a request or texts.
+
+    Used where no request can govern (duplicate request ids, orphans) or where a source failed to
+    read (Copilot review of ab49108): readable evidence is kept, but nothing is inferred from an
+    absence, since a source that failed may hold the missing record.
+    """
+    times = {
+        "replied_at": sorted((r.get("created_at") for r in replies), key=str),
+        "filed_at": sorted((f.get("filed_at") for f in filings), key=str),
+        "filing_failed_at": sorted((r.get("at") for r in receipts if r.get("kind") == "filing_failed"),
+                                   key=str),
+    }
+    flags = []
+    if any(f.get("provenance") == "reconstruction" for f in filings):
+        flags.append("reconstruction_filed")
+    if len(replies) > 1:
+        flags.append("duplicate_replies")
+    if len(filings) > 1:
+        flags.append("duplicate_filings")
+    if any(r.get("kind") == "filing_failed" for r in receipts):
+        flags.append("filing_failed_recorded")
+    return times, flags
 
 
 def classify(req: dict, replies: list[dict], filings: list[dict], receipts: list[dict],
@@ -347,14 +419,17 @@ def classify(req: dict, replies: list[dict], filings: list[dict], receipts: list
         elif replies and any(t < min(reply_at.values()) for t in filed_at.values()):
             untraceable = "filing event time precedes the reply it copies (untraceable order)"
             inputs.stops.append(f"untraceable evidence for {req['id']}: filing precedes every reply")
+    # Ambiguity is checked whenever each side has exactly one distinct text under the pinned rule,
+    # however many identical replays there are (Copilot review of ab49108): a replay must not let
+    # "Hello" vs "hello" escape the stop. With two distinct texts on a side, no pairing is invented.
     ambiguous = False
-    if len(replies) == 1 and len(filings) == 1:
-        rt, ft = texts.get(replies[0]["_locator"]), texts.get(filings[0]["_locator"])
-        if rt is not None and ft is not None:
-            a, b = normalize(rt), normalize(ft)
-            if a != b and loose(a) == loose(b):
-                ambiguous = True
-                inputs.stops.append(f"ambiguous normalization for {req['id']}")
+    reply_norms = {normalize(texts[r["_locator"]]) for r in replies if r["_locator"] in texts}
+    filing_norms = {normalize(texts[f["_locator"]]) for f in filings if f["_locator"] in texts}
+    if len(reply_norms) == 1 and len(filing_norms) == 1:
+        (a,), (b,) = reply_norms, filing_norms
+        if a != b and loose(a) == loose(b):
+            ambiguous = True
+            inputs.stops.append(f"ambiguous normalization for {req['id']}")
 
     # Validation failures: the evidence cannot be read as it stands, so the status is unknown.
     if text_problem:
@@ -414,18 +489,28 @@ def run(manifest_path: Path, code_version: str = "unpinned") -> dict:
     for rid in sorted(by_req):
         pick = lambda role: [x for x in data[role] if x.get("request_id") == rid]  # noqa: E731
         if len(by_req[rid]) > 1:
-            # Two request records with one id: which one governs is unknowable, so nothing is classified.
+            # Two request records with one id: which one governs is unknowable, so nothing is classified
+            # and no request's times are used; the replies', filings' and receipts' own facts are kept.
             inputs.stops.append(f"duplicate request id {rid!r} ({len(by_req[rid])} records)")
-            row = classify(by_req[rid][0], [], [], [], inputs, observed_at)
-            row.update(status="unknown", reason=f"{len(by_req[rid])} request records share this id",
-                       evidence=_evidence(by_req[rid] + pick("replies") + pick("filings") + pick("receipts")))
-            rows.append(row)
+            times, flags = record_facts(pick("replies"), pick("filings"), pick("receipts"))
+            rows.append({
+                "request_id": rid, "recipient": None, "status": "unknown",
+                "reason": f"{len(by_req[rid])} request records share this id", "flags": sorted(flags),
+                "event_times": {"asked_at": None, "due_by": None, **times}, "observed_at": observed_at,
+                "evidence": _evidence(by_req[rid] + pick("replies") + pick("filings") + pick("receipts")),
+            })
             continue
         by_req[rid] = by_req[rid][0]
         if source_problems:
-            # A whole source failed to read: nothing about any request can be said to be missing.
+            # A whole source failed to read: nothing about any request can be said to be missing, but
+            # what was read is kept (locators, event times, flags the records state themselves).
             row = classify(by_req[rid], [], [], [], inputs, observed_at)
-            row.update(status="unknown", reason="source unreadable: " + "; ".join(source_problems))
+            times, flags = record_facts(pick("replies"), pick("filings"), pick("receipts"))
+            row["event_times"].update(times)
+            row.update(status="unknown", reason="source unreadable: " + "; ".join(source_problems),
+                       flags=sorted(set(row["flags"]) | set(flags)),
+                       evidence=_evidence([by_req[rid]] + pick("replies") + pick("filings")
+                                          + pick("receipts")))
             rows.append(row)
             continue
         rows.append(classify(by_req[rid], pick("replies"), pick("filings"), pick("receipts"),
@@ -437,10 +522,13 @@ def run(manifest_path: Path, code_version: str = "unpinned") -> dict:
     for role in () if source_problems else ("replies", "filings", "receipts"):
         for x in data[role]:
             if x.get("request_id") not in by_req:
+                # The record's own event time is kept: a missing request doesn't make it unavailable.
+                times, _ = record_facts(*([x] if role == r else [] for r in ("replies", "filings",
+                                                                             "receipts")))
                 rows.append({"request_id": x.get("request_id"), "status": "unpaired",
                              "reason": f"{role[:-1]} names no request in the manifest", "flags": [],
-                             "event_times": {}, "observed_at": observed_at,
-                             "evidence": _evidence([x])})
+                             "event_times": {k: v for k, v in times.items() if v},
+                             "observed_at": observed_at, "evidence": _evidence([x])})
 
     counts = {s: 0 for s in STATUSES}
     for r in rows:
@@ -463,7 +551,9 @@ def run(manifest_path: Path, code_version: str = "unpinned") -> dict:
 
 
 def check_gold(report: dict, gold: dict) -> list[str]:
-    got = {r["request_id"]: r["status"] for r in report["rows"] if r["status"] != "unpaired"}
+    # Unpaired rows are checked too (Copilot review of ab49108): an expected orphan must be found,
+    # and an unexpected one is a wrong classification.
+    got = {r["request_id"]: r["status"] for r in report["rows"]}
     wrong = [f"{rid}: gold {want}, got {got.get(rid)}" for rid, want in sorted(gold.items())
              if got.get(rid) != want]
     wrong += [f"{rid}: classified {st} but absent from gold" for rid, st in sorted(got.items())
@@ -473,6 +563,29 @@ def check_gold(report: dict, gold: dict) -> list[str]:
 
 def dumps(report: dict) -> str:
     return json.dumps(report, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+
+
+def output_aliases_input(out: Path, manifest_path: Path) -> str | None:
+    """The input that `out` would overwrite (by path, symlink or hard link), or None.
+
+    The comparator never writes to what it reads (Copilot review of ab49108).
+    """
+    try:
+        man = json.loads(manifest_path.read_bytes())
+        rels = [s["path"] for s in man.get("sources", [])]
+    except (OSError, ValueError, TypeError, KeyError):
+        rels = []
+    inputs = [manifest_path] + [manifest_path.parent / r for r in rels]
+    target = out.resolve()
+    for p in inputs:
+        if p.resolve() == target:
+            return str(p)
+        try:
+            if out.exists() and p.exists() and out.samefile(p):
+                return str(p)
+        except OSError:
+            continue
+    return None
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -495,6 +608,10 @@ def main(argv: list[str] | None = None) -> int:
             rc = 3
     text = dumps(report)
     if a.out:
+        clash = output_aliases_input(a.out, a.manifest)
+        if clash:
+            print(f"STOP: --out would overwrite an input: {clash}", file=sys.stderr)
+            return 2
         a.out.write_text(text)
     else:
         sys.stdout.write(text)

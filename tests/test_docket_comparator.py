@@ -509,5 +509,90 @@ class StopsAndUnknowns(unittest.TestCase):
             self.assertEqual(statuses, ["missing_reply", "unpaired"])
 
 
+class CopilotReviewAb49108(unittest.TestCase):
+    """One test per Copilot finding on ab49108; each fails on ab49108."""
+
+    def test_replayed_records_do_not_bypass_the_ambiguity_stop(self):
+        for replies, filings in (([dict(REPLY, text="Hello")] * 2, [dict(FILING, text="hello")]),
+                                 ([dict(REPLY, text="Hello")], [dict(FILING, text="hello")] * 2)):
+            with tempfile.TemporaryDirectory() as d:
+                report = comparator.run(write_set(Path(d), [REQ], replies, filings))
+                self.assertEqual(report["rows"][0]["status"], "unknown")
+                self.assertTrue(any("ambiguous normalization" in s for s in report["stop"]))
+                self.assertTrue({"duplicate_replies", "duplicate_filings"} & set(report["rows"][0]["flags"]))
+        with tempfile.TemporaryDirectory() as d:  # two distinct texts on a side: no pairing, no stop
+            report = comparator.run(write_set(Path(d), [REQ], [dict(REPLY, text="Hello"), dict(REPLY, text="bye")],
+                                              [dict(FILING, text="hello")]))
+            self.assertEqual(report["rows"][0]["status"], "duplicate")
+            self.assertFalse(report["stop"])
+
+    def test_out_cannot_overwrite_an_input(self):
+        import os
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ], [dict(REPLY, text="a")], [dict(FILING, text="a")])
+            before = {p.name: p.read_bytes() for p in Path(d).iterdir()}
+            (Path(d) / "link.jsonl").symlink_to(Path(d) / "requests.jsonl")
+            os.link(Path(d) / "replies.jsonl", Path(d) / "hard.jsonl")
+            for target in (m, Path(d) / "requests.jsonl", Path(d) / "link.jsonl", Path(d) / "hard.jsonl"):
+                self.assertEqual(comparator.main([str(m), "-o", str(target)]), 2, target.name)
+            self.assertEqual({p: (Path(d) / p).read_bytes() for p in before}, before)
+            self.assertEqual(comparator.main([str(m), "-o", str(Path(d) / "report.json")]), 0)
+
+    def test_malformed_field_shapes_are_source_problems(self):
+        cases = [("replies", dict(REPLY, text=42)), ("filings", dict(FILING, text=42)),
+                 ("replies", dict(REPLY, body="x.txt")), ("requests", {k: v for k, v in REQ.items() if k != "id"}),
+                 ("replies", dict(REPLY, request_id=7, text="a")), ("receipts", {"request_id": "RQ-X", "kind": 1})]
+        for role, bad in cases:
+            with tempfile.TemporaryDirectory() as d:
+                sets = {"requests": [REQ], "replies": [dict(REPLY, text="a")], "filings": [dict(FILING, text="a")],
+                        "receipts": []}
+                sets[role] = sets[role] + [bad] if role != "requests" else [REQ, bad]
+                m = write_set(Path(d), sets["requests"], sets["replies"], sets["filings"], sets["receipts"])
+                report = comparator.run(m)  # must not raise
+                self.assertTrue(any("malformed_record" in s for s in report["stop"]), (role, bad))
+                self.assertNotIn("missing_filing", {r["status"] for r in report["rows"]}, (role, bad))
+
+    def test_unreadable_source_keeps_readable_evidence(self):
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ], [dict(REPLY, text="a")], [dict(FILING, text="a", provenance="reconstruction")])
+            (Path(d) / "receipts.jsonl").write_text("changed\n")  # digest no longer matches
+            row = comparator.run(m)["rows"][0]
+            self.assertEqual(row["status"], "unknown")
+            self.assertEqual(row["event_times"]["replied_at"], [REPLY["created_at"]])
+            self.assertEqual(row["event_times"]["filed_at"], [FILING["filed_at"]])
+            self.assertIn("reconstruction_filed", row["flags"])
+            self.assertEqual(len(row["evidence"]), 3)
+            self.assertNotIn("filing_without_reply", row["flags"])  # no absence inferred
+
+    def test_duplicate_request_keeps_record_facts_but_no_request_times(self):
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ, dict(REQ, due_by="2026-11-17T19:00:00Z")],
+                          [dict(REPLY, text="a")] * 2, [dict(FILING, text="a")])
+            row = comparator.run(m)["rows"][0]
+            self.assertEqual(row["status"], "unknown")
+            self.assertEqual(row["event_times"]["replied_at"], [REPLY["created_at"]] * 2)
+            self.assertEqual(row["event_times"]["filed_at"], [FILING["filed_at"]])
+            self.assertIsNone(row["event_times"]["asked_at"])  # no one request is authoritative
+            self.assertIsNone(row["event_times"]["due_by"])
+            self.assertIn("duplicate_replies", row["flags"])
+
+    def test_unpaired_rows_keep_their_event_time(self):
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ], [dict(REPLY, request_id="RQ-NONE", text="a")],
+                          [dict(FILING, request_id="RQ-NF", text="a")],
+                          [{"request_id": "RQ-NR", "kind": "filing_failed", "at": "2026-11-17T15:00:00Z"}])
+            rows = {r["request_id"]: r for r in comparator.run(m)["rows"] if r["status"] == "unpaired"}
+            self.assertEqual(rows["RQ-NONE"]["event_times"], {"replied_at": [REPLY["created_at"]]})
+            self.assertEqual(rows["RQ-NF"]["event_times"], {"filed_at": [FILING["filed_at"]]})
+            self.assertEqual(rows["RQ-NR"]["event_times"], {"filing_failed_at": ["2026-11-17T15:00:00Z"]})
+
+    def test_gold_checks_unpaired_rows(self):
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ], [dict(REPLY, request_id="RQ-NONE", text="a")])
+            report = comparator.run(m)
+            self.assertEqual(comparator.check_gold(report, {"RQ-X": "missing_reply", "RQ-NONE": "unpaired"}), [])
+            self.assertTrue(comparator.check_gold(report, {"RQ-X": "missing_reply"}))  # unexpected orphan
+
+
 if __name__ == "__main__":
     unittest.main()
