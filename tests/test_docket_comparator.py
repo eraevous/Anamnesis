@@ -608,5 +608,52 @@ class CopilotReviewAb49108(unittest.TestCase):
             self.assertTrue(comparator.check_gold(report, {"RQ-X": "missing_reply"}))  # unexpected orphan
 
 
+class CopilotReviewD47e1b5(unittest.TestCase):
+    """One test per Copilot finding on d47e1b5; each fails on d47e1b5."""
+
+    def test_equivalent_path_spellings_are_one_grant(self):
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ], [dict(REPLY, text="a")], [dict(FILING, text="a")])
+            mf = json.loads(m.read_text())
+            src = next(x for x in mf["sources"] if x["role"] == "replies")
+            mf["sources"].append(dict(src, path="./replies.jsonl"))
+            m.write_text(json.dumps(mf))
+            with self.assertRaises(comparator.Stop):
+                comparator.run(m)
+
+    def test_time_that_overflows_utc_is_unreadable_not_a_crash(self):
+        self.assertIsNone(comparator.instant("0001-01-01T00:00:00+01:00"))
+        self.assertIsNone(comparator.instant("9999-12-31T23:59:59-01:00"))
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ], [dict(REPLY, text="a", created_at="0001-01-01T00:00:00+01:00")],
+                          [dict(FILING, text="a")])
+            report = comparator.run(m)
+            self.assertEqual(report["rows"][0]["status"], "unknown")
+            self.assertTrue(any("untraceable" in s for s in report["stop"]))
+
+    def test_ambiguous_record_still_checks_its_body_grant(self):
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "unlisted.txt").write_text("x")
+            m = write_set(Path(d), [REQ], [dict(REPLY, text="answer", body={"path": "unlisted.txt"})],
+                          [dict(FILING, text="answer")])
+            report = comparator.run(m)
+            self.assertEqual(report["rows"][0]["status"], "unknown")
+            self.assertTrue(any("ungranted" in s for s in report["stop"]))
+            self.assertEqual(comparator.main([str(m), "-o", str(Path(d) / "r.json")]), 2)
+
+    def test_orphan_body_must_be_granted(self):
+        for role in ("replies", "filings"):
+            with tempfile.TemporaryDirectory() as d:
+                (Path(d) / "unlisted.txt").write_text("x")
+                orphan = dict(REPLY if role == "replies" else FILING, request_id="RQ-NONE",
+                              body={"path": "unlisted.txt"})
+                sets = {"replies": [], "filings": []}
+                sets[role] = [orphan]
+                m = write_set(Path(d), [REQ], sets["replies"], sets["filings"])
+                report = comparator.run(m)
+                self.assertIn("unpaired", {r["status"] for r in report["rows"]})
+                self.assertTrue(any("ungranted" in s for s in report["stop"]), role)
+
+
 if __name__ == "__main__":
     unittest.main()

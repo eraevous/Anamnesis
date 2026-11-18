@@ -42,6 +42,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import posixpath
 import re
 import sys
 import unicodedata
@@ -107,9 +108,11 @@ def instant(value) -> datetime | None:
     frac = f".{frac[:6]}" if frac else ""
     try:
         dt = datetime.fromisoformat(m.group("sec") + frac + ("+00:00" if off in ("Z", "z") else off))
-    except ValueError:
+        # Conversion can leave datetime's range (0001-01-01T00:00:00+01:00 is year 0 in UTC;
+        # Copilot review of d47e1b5): an unrepresentable instant is unreadable, not a crash.
+        return dt.astimezone(timezone.utc)
+    except (ValueError, OverflowError):
         return None
-    return dt.astimezone(timezone.utc)
 
 
 def loose(text: str) -> str:
@@ -176,14 +179,23 @@ class Inputs:
             if src["role"] not in ROLES:
                 raise Stop(f"unknown source role {src['role']!r}")
             self._check_path(src["path"])
-            if src["path"] in self.granted:
-                # A second grant for one path would silently replace the first (and its role).
+            key = self.key(src["path"])
+            if key in self.granted:
+                # A second grant for one file would silently replace the first (and its role), or
+                # read the same lines twice and fabricate a replay. Spellings are compared after
+                # normalization, so "replies.jsonl" and "./replies.jsonl" are one file (Copilot
+                # review of d47e1b5).
                 raise Stop(f"manifest lists {src['path']!r} more than once")
-            self.granted[src["path"]] = src
+            self.granted[key] = src
         for role in RECORD_ROLES:
             if not any(s["role"] == role for s in self.granted.values()):
                 raise Stop(f"manifest grants no {role} source")
         self.stops: list[str] = []
+
+    @staticmethod
+    def key(rel: str) -> str:
+        """One spelling per granted file: "./a//b.jsonl" and "a/b.jsonl" name the same file."""
+        return posixpath.normpath(rel) if isinstance(rel, str) and rel else ""
 
     def _check_path(self, rel: str) -> None:
         p = PurePosixPath(rel)
@@ -192,9 +204,11 @@ class Inputs:
 
     def read(self, rel: str) -> tuple[bytes | None, str | None]:
         """Return (bytes, None) or (None, reason). Ungranted paths are a stop, not an unknown."""
-        if rel not in self.granted:
+        if self.key(rel) not in self.granted or ".." in PurePosixPath(rel).parts \
+                or PurePosixPath(rel).is_absolute():
             self.stops.append(f"ungranted input: {rel!r} is not listed in the manifest")
             return None, "ungranted_input"
+        rel = self.key(rel)
         path = (self.root / rel).resolve()
         if not path.is_relative_to(self.root):
             # A listed name that resolves elsewhere (a symlink) is still outside the grant.
@@ -252,20 +266,38 @@ class Inputs:
                 out += parsed
         return out, problems
 
+    def body_grant_problem(self, rec: dict) -> str | None:
+        """Check a record's body reference against the grant, recording any stop; None if fine.
+
+        Runs for every record that cites a body, whatever else is wrong with it and whether or not
+        it names a known request (Copilot review of d47e1b5), so no status can hide the stop.
+        """
+        if "body" not in rec:
+            return None
+        rel = (rec.get("body") or {}).get("path", "")
+        key = self.key(rel)
+        if key not in self.granted or ".." in PurePosixPath(rel).parts or PurePosixPath(rel).is_absolute():
+            self.stops.append(f"ungranted input: {rel!r} is not listed in the manifest")
+            return "ungranted_input"
+        if self.granted[key]["role"] != "body":
+            # A record source cited as a body would promote unrelated bytes to filed evidence.
+            self.stops.append(f"ungranted input: {rel!r} is not granted as a body "
+                              f"(role {self.granted[key]['role']!r})")
+            return "ungranted_input"
+        return None
+
     def text_of(self, rec: dict) -> tuple[str | None, str | None]:
+        grant = self.body_grant_problem(rec)
         if "text" in rec and "body" in rec:
             return None, "ambiguous_record (both inline text and a body)"
         if "text" in rec:
             return rec["text"], None
         if "body" not in rec:
             return None, "no_text (neither inline text nor a body)"
+        if grant:
+            return None, grant
         body = rec.get("body") or {}
         rel = body.get("path", "")
-        if rel in self.granted and self.granted[rel]["role"] != "body":
-            # A record source cited as a body would promote unrelated bytes to filed evidence.
-            self.stops.append(f"ungranted input: {rel!r} is not granted as a body "
-                              f"(role {self.granted[rel]['role']!r})")
-            return None, "ungranted_input"
         data, why = self.read(rel)
         if data is None:
             return None, why
@@ -523,6 +555,7 @@ def run(manifest_path: Path, code_version: str = "unpinned") -> dict:
     for role in () if source_problems else ("replies", "filings", "receipts"):
         for x in data[role]:
             if x.get("request_id") not in by_req:
+                inputs.body_grant_problem(x)  # an orphan's body must be granted too
                 # The record's own event time is kept: a missing request doesn't make it unavailable.
                 times, _ = record_facts(*([x] if role == r else [] for r in ("replies", "filings",
                                                                              "receipts")))
