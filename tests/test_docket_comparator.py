@@ -460,6 +460,28 @@ class StopsAndUnknowns(unittest.TestCase):
             self.assertEqual(report["rows"][0]["status"], "unknown")
             self.assertTrue(any("asked_at after observed_at" in s for s in report["stop"]))
 
+    # Codex security review of a700ab5: a decisive filing_failed receipt needs a traceable time.
+    def test_filing_failed_receipt_time_must_be_traceable(self):
+        for at in (None, "yesterday", "2026-11-17T11:59:59Z", "2099-01-01T00:00:00Z"):
+            rec = {"request_id": "RQ-X", "kind": "filing_failed", "original_sha256": "0" * 64}
+            if at is not None:
+                rec["at"] = at
+            with tempfile.TemporaryDirectory() as d:
+                m = write_set(Path(d), [REQ], [dict(REPLY, text="a")], [], [rec])
+                report = comparator.run(m)
+                self.assertEqual(report["rows"][0]["status"], "unknown", at)
+                self.assertTrue(any("untraceable evidence" in s for s in report["stop"]), at)
+                self.assertEqual(comparator.main([str(m)]), 2, at)
+
+    def test_filing_failed_receipt_in_window_still_missing_original(self):
+        rec = {"request_id": "RQ-X", "kind": "filing_failed", "at": "2026-11-17T14:00:00Z",
+               "original_sha256": "0" * 64}
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ], [dict(REPLY, text="a")], [], [rec])
+            report = comparator.run(m)
+            self.assertEqual(report["rows"][0]["status"], "missing_original")
+            self.assertEqual(report["stop"], [])
+
     def test_duplicate_manifest_path_is_refused(self):
         with tempfile.TemporaryDirectory() as d:
             m = write_set(Path(d), [REQ])

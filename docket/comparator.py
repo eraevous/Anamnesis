@@ -297,6 +297,13 @@ def classify(req: dict, replies: list[dict], filings: list[dict], receipts: list
             bad_time = f"filed_at {f.get('filed_at')!r} at {f['_locator']}"
     late = bool(due and any(t and t > due for t in reply_at.values()))
     failed = [r for r in receipts if r.get("kind") == "filing_failed"]
+    # A filing_failed receipt decides missing_original, so its time is compared like any other
+    # event (Codex security review of a700ab5): unreadable, or outside request..snapshot, is untraceable.
+    failed_at = {}
+    for r in failed:
+        failed_at[r["_locator"]] = t = instant(r.get("at"))
+        if t is None and bad_time is None:
+            bad_time = f"filing_failed at {r.get('at')!r} at {r['_locator']}"
     if late:
         row["flags"].append("late_reply")
     if any(f.get("provenance") == "reconstruction" for f in filings):
@@ -326,7 +333,7 @@ def classify(req: dict, replies: list[dict], filings: list[dict], receipts: list
         # Every event must sit in request <= reply <= filing <= snapshot (Codex security review of
         # e9358b4): evidence dated before the request or after the snapshot cannot be traced to it.
         snapshot = instant(observed_at)
-        events = list(reply_at.values()) + list(filed_at.values())
+        events = list(reply_at.values()) + list(filed_at.values()) + list(failed_at.values())
         if asked > snapshot:
             # A request dated after the snapshot was not yet asked when it was taken.
             untraceable = "request asked_at is after the snapshot's observed_at (untraceable order)"
