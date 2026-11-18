@@ -538,6 +538,20 @@ class CopilotReviewAb49108(unittest.TestCase):
             self.assertEqual({p: (Path(d) / p).read_bytes() for p in before}, before)
             self.assertEqual(comparator.main([str(m), "-o", str(Path(d) / "report.json")]), 0)
 
+    def test_out_cannot_overwrite_the_gold_file(self):
+        # Codex review of 2541776: --out naming the --gold file replaced the expected statuses.
+        import os
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ], [dict(REPLY, text="a")], [dict(FILING, text="a")])
+            gold = Path(d) / "gold.json"
+            gold.write_text(json.dumps({"RQ-X": "matched"}))
+            (Path(d) / "gold-link.json").symlink_to(gold)
+            os.link(gold, Path(d) / "gold-hard.json")
+            for target in (gold, Path(d) / "gold-link.json", Path(d) / "gold-hard.json"):
+                self.assertEqual(comparator.main([str(m), "--gold", str(gold), "-o", str(target)]), 2)
+            self.assertEqual(json.loads(gold.read_text()), {"RQ-X": "matched"})
+            self.assertEqual(comparator.main([str(m), "--gold", str(gold), "-o", str(Path(d) / "r.json")]), 0)
+
     def test_malformed_field_shapes_are_source_problems(self):
         cases = [("replies", dict(REPLY, text=42)), ("filings", dict(FILING, text=42)),
                  ("replies", dict(REPLY, body="x.txt")), ("requests", {k: v for k, v in REQ.items() if k != "id"}),

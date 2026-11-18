@@ -31,7 +31,8 @@ filing timed before every reply, or a compared event time that is not an RFC 333
 offset; times are compared as UTC instants, never as strings), an unreadable pinned source, a
 normalization version the code does not implement, a manifest that lists a path twice or lacks one
 of the four record roles, and, with --gold, any wrong gold classification (exit 3). The CLI also
-refuses (exit 2) an --out path that is the manifest or a granted source, by path or link. Every stop
+refuses (exit 2) an --out path that is the manifest, a granted source or the --gold file,
+by path or link. Every stop
 check runs for every request before its status is chosen, so no status can hide a stop or a
 secondary fact.
 """
@@ -565,17 +566,18 @@ def dumps(report: dict) -> str:
     return json.dumps(report, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
 
-def output_aliases_input(out: Path, manifest_path: Path) -> str | None:
+def output_aliases_input(out: Path, manifest_path: Path, extra: tuple = ()) -> str | None:
     """The input that `out` would overwrite (by path, symlink or hard link), or None.
 
-    The comparator never writes to what it reads (Copilot review of ab49108).
+    The comparator never writes to what it reads (Copilot review of ab49108), the --gold file
+    included (Codex review of 2541776).
     """
     try:
         man = json.loads(manifest_path.read_bytes())
         rels = [s["path"] for s in man.get("sources", [])]
     except (OSError, ValueError, TypeError, KeyError):
         rels = []
-    inputs = [manifest_path] + [manifest_path.parent / r for r in rels]
+    inputs = [manifest_path] + [manifest_path.parent / r for r in rels] + [Path(p) for p in extra if p]
     target = out.resolve()
     for p in inputs:
         if p.resolve() == target:
@@ -608,7 +610,7 @@ def main(argv: list[str] | None = None) -> int:
             rc = 3
     text = dumps(report)
     if a.out:
-        clash = output_aliases_input(a.out, a.manifest)
+        clash = output_aliases_input(a.out, a.manifest, (a.gold,))
         if clash:
             print(f"STOP: --out would overwrite an input: {clash}", file=sys.stderr)
             return 2
