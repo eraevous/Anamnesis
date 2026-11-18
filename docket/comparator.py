@@ -210,29 +210,48 @@ def classify(req: dict, replies: list[dict], filings: list[dict], receipts: list
             return done("unknown", f"{why}: {where or 'inline text'} (cited by {rec['_locator']})")
         texts[rec["_locator"]] = text
 
-    if req.get("route") in UNSUPPORTED_ROUTES:
-        return done("unsupported", f"route {req.get('route')!r} has no unattended consumer")
-    if not replies:
-        due = req.get("due_by")
-        if due and due < observed_at:
-            return done("missing_reply", "no reply by the snapshot, after due_by")
-        return done("pending", "no reply yet; not due at the snapshot (censored)")
-    if len(replies) > 1 or len(filings) > 1:
-        return done("duplicate", f"{len(replies)} replies, {len(filings)} filings")
-
-    reply = replies[0]
-    late = bool(req.get("due_by") and reply.get("created_at", "") > req["due_by"])
-    if late:
-        row["flags"].append("late_reply")
-
-    failed = [r for r in receipts if r.get("kind") == "filing_failed"]
+    # Mandatory validation first, so no primary status can hide a stop condition (ANA Kate, round 2).
     bad = [f for f in filings if f.get("provenance") not in ("original", "reconstruction")]
     if bad:
         return done("unknown", f"filing provenance must be 'original' or 'reconstruction', "
                                f"got {bad[0].get('provenance')!r} at {bad[0]['_locator']}")
+    if replies:
+        first_reply = min(r.get("created_at", "") for r in replies)
+        early = [f for f in filings if f.get("filed_at", "") < first_reply]
+        if early:
+            inputs.stops.append(f"untraceable evidence for {req['id']}: filing precedes every reply")
+            return done("unknown", "filing event time precedes the reply it copies (untraceable order)")
+
+    # Secondary facts, gathered before the primary status so an earlier status can't drop them.
+    due = req.get("due_by")
+    late = bool(due and any(r.get("created_at", "") > due for r in replies))
+    failed = [r for r in receipts if r.get("kind") == "filing_failed"]
+    if late:
+        row["flags"].append("late_reply")
+    if any(f.get("provenance") == "reconstruction" for f in filings):
+        row["flags"].append("reconstruction_filed")
+    if len(replies) > 1:
+        row["flags"].append("duplicate_replies")
+    if len(filings) > 1:
+        row["flags"].append("duplicate_filings")
+    if filings and not replies:
+        row["flags"].append("filing_without_reply")
+    if failed:
+        row["flags"].append("filing_failed_recorded")
+
+    if req.get("route") in UNSUPPORTED_ROUTES:
+        return done("unsupported", f"route {req.get('route')!r} has no unattended consumer")
+    if not replies:
+        if due and due < observed_at:
+            return done("missing_reply", "no reply by the snapshot, after due_by")
+        return done("pending", "no reply yet; not due at the snapshot (censored)")
+    if len(replies) > 1 or len(filings) > 1:
+        # No pairing is invented between duplicates; per-record facts stay in flags and evidence.
+        return done("duplicate", f"{len(replies)} replies, {len(filings)} filings")
+
+    reply = replies[0]
     lost_msg = "original filing lost; a reconstruction is not the original"
     if filings and filings[0].get("provenance") == "reconstruction":
-        row["flags"].append("reconstruction_filed")
         return done("missing_original", lost_msg)
     if failed:
         if not filings:
@@ -248,9 +267,6 @@ def classify(req: dict, replies: list[dict], filings: list[dict], receipts: list
         return done("missing_filing", "reply read successfully; no filing found")
 
     filing = filings[0]
-    if filing.get("filed_at", "") < reply.get("created_at", ""):
-        return done("unknown", "filing event time precedes the reply it copies (untraceable order)")
-
     a, b = normalize(texts[reply["_locator"]]), normalize(texts[filing["_locator"]])
     if a != b:
         if loose(a) == loose(b):

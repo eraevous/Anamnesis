@@ -235,7 +235,57 @@ class StopsAndUnknowns(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             m = write_set(Path(d), [REQ], [dict(REPLY, text="a")],
                           [dict(FILING, text="a", filed_at="2026-11-17T12:30:00Z")])
-            self.assertEqual(comparator.run(m)["rows"][0]["status"], "unknown")
+            report = comparator.run(m)
+            self.assertEqual(report["rows"][0]["status"], "unknown")
+            self.assertTrue(any("untraceable evidence" in s for s in report["stop"]))
+
+    # Overlapping cases (ANA Kate, round 2): the primary status may not hide a secondary fact
+    # or a stop condition.
+
+    def test_duplicate_with_reconstruction_keeps_reconstruction_flag(self):
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ], [dict(REPLY, text="a")],
+                          [dict(FILING, text="a"),
+                           dict(FILING, filing_id="FL-Y", text="a", provenance="reconstruction")])
+            row = comparator.run(m)["rows"][0]
+            self.assertEqual(row["status"], "duplicate")
+            self.assertIn("reconstruction_filed", row["flags"])
+            self.assertIn("duplicate_filings", row["flags"])
+
+    def test_late_and_duplicate_keeps_late_flag(self):
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ], [dict(REPLY, text="a", created_at="2026-11-17T19:00:00Z")],
+                          [dict(FILING, text="a", filed_at="2026-11-17T20:00:00Z"),
+                           dict(FILING, filing_id="FL-Y", text="a", filed_at="2026-11-17T21:00:00Z")])
+            row = comparator.run(m)["rows"][0]
+            self.assertEqual(row["status"], "duplicate")
+            self.assertIn("late_reply", row["flags"])
+
+    def test_no_reply_with_duplicate_filings_keeps_filing_facts(self):
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ], [],
+                          [dict(FILING, text="a"), dict(FILING, filing_id="FL-Y", text="b")])
+            row = comparator.run(m)["rows"][0]
+            self.assertEqual(row["status"], "missing_reply")
+            self.assertIn("duplicate_filings", row["flags"])
+            self.assertIn("filing_without_reply", row["flags"])
+
+    def test_reconstruction_with_untraceable_order_stops(self):
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ], [dict(REPLY, text="a")],
+                          [dict(FILING, text="a", provenance="reconstruction",
+                                filed_at="2026-11-17T12:30:00Z")])
+            report = comparator.run(m)
+            self.assertEqual(report["rows"][0]["status"], "unknown")
+            self.assertTrue(any("untraceable evidence" in s for s in report["stop"]))
+
+    def test_late_and_altered_is_mismatch_with_late_flag(self):
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ], [dict(REPLY, text="may", created_at="2026-11-17T19:00:00Z")],
+                          [dict(FILING, text="will", filed_at="2026-11-17T20:00:00Z")])
+            row = comparator.run(m)["rows"][0]
+            self.assertEqual(row["status"], "mismatch")
+            self.assertIn("late_reply", row["flags"])
 
     def test_orphan_reply_is_unpaired(self):
         with tempfile.TemporaryDirectory() as d:
