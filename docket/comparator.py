@@ -100,6 +100,10 @@ def instant(value) -> datetime | None:
     if m is None:
         return None
     off = m.group("off")
+    if off == "-00:00":
+        # RFC 3339 section 4.3: "-00:00" means the local offset is unknown, so it is not a traceable
+        # instant (Codex security review of d33b5b3).
+        return None
     if off not in ("Z", "z") and (int(off[1:3]) > 23 or int(off[4:6]) > 59):
         return None
     frac = m.group("frac") or ""

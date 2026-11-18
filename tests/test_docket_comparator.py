@@ -671,6 +671,16 @@ class CodexSecurityReviewD47e1b5(unittest.TestCase):
             report = comparator.run(write_set(Path(d), [dict(req, route="none")]))
             self.assertEqual(report["rows"][0]["status"], "unsupported")
 
+    def test_unknown_offset_minus_zero_is_untraceable(self):
+        self.assertIsNone(comparator.instant("2026-11-17T13:00:00-00:00"))
+        self.assertIsNotNone(comparator.instant("2026-11-17T13:00:00+00:00"))
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ], [dict(REPLY, text="a", created_at="2026-11-17T13:00:00-00:00")],
+                          [dict(FILING, text="a")])
+            report = comparator.run(m)
+            self.assertEqual(report["rows"][0]["status"], "unknown")
+            self.assertTrue(any("untraceable" in s for s in report["stop"]))
+
 
 if __name__ == "__main__":
     unittest.main()
