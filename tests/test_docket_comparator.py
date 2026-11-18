@@ -287,6 +287,64 @@ class StopsAndUnknowns(unittest.TestCase):
             self.assertEqual(row["status"], "mismatch")
             self.assertIn("late_reply", row["flags"])
 
+    # Codex review of 5121428: no early return may skip a stop check or drop a secondary fact.
+
+    def test_ambiguous_normalization_stops_even_when_route_unsupported(self):
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [dict(REQ, route="none")], [dict(REPLY, text="Hello")],
+                          [dict(FILING, text="hello")])
+            report = comparator.run(m)
+            self.assertEqual(report["rows"][0]["status"], "unknown")
+            self.assertTrue(any("ambiguous normalization" in s for s in report["stop"]))
+
+    def test_ambiguous_normalization_stops_even_for_a_reconstruction(self):
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ], [dict(REPLY, text="Hello")],
+                          [dict(FILING, text="hello", provenance="reconstruction")])
+            report = comparator.run(m)
+            self.assertEqual(report["rows"][0]["status"], "unknown")
+            self.assertIn("reconstruction_filed", report["rows"][0]["flags"])
+            self.assertTrue(any("ambiguous normalization" in s for s in report["stop"]))
+
+    def test_untraceable_order_keeps_secondary_facts(self):
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ], [dict(REPLY, text="a", created_at="2026-11-17T19:00:00Z")],
+                          [dict(FILING, text="a", provenance="reconstruction",
+                                filed_at="2026-11-17T12:30:00Z")],
+                          [{"request_id": "RQ-X", "kind": "filing_failed", "at": "2026-11-17T12:00:00Z"}])
+            row = comparator.run(m)["rows"][0]
+            self.assertEqual(row["status"], "unknown")
+            for flag in ("reconstruction_filed", "late_reply", "filing_failed_recorded"):
+                self.assertIn(flag, row["flags"])
+
+    def test_invalid_provenance_does_not_hide_untraceable_order(self):
+        with tempfile.TemporaryDirectory() as d:
+            f = dict(FILING, text="a", filed_at="2026-11-17T12:30:00Z")
+            del f["provenance"]
+            m = write_set(Path(d), [REQ], [dict(REPLY, text="a")], [f])
+            report = comparator.run(m)
+            self.assertEqual(report["rows"][0]["status"], "unknown")
+            self.assertTrue(any("untraceable evidence" in s for s in report["stop"]))
+            self.assertEqual(comparator.main([str(m), "-o", str(Path(d) / "r.json")]), 2)
+
+    def test_unreadable_body_does_not_hide_untraceable_order_or_flags(self):
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "b.txt").write_text("a")
+            body = {"role": "body", "path": "b.txt", "sha256": sha("a")}
+            m = write_set(Path(d), [REQ],
+                          [dict(REPLY, body={"path": "b.txt", "sha256": "0" * 64},
+                                created_at="2026-11-17T19:00:00Z"),
+                           dict(REPLY, reply_id="RP-Y", text="a", created_at="2026-11-17T19:30:00Z")],
+                          [dict(FILING, text="a", filed_at="2026-11-17T12:30:00Z")],
+                          extra_sources=[body])
+            report = comparator.run(m)
+            row = report["rows"][0]
+            self.assertEqual(row["status"], "unknown")
+            self.assertIn("digest_mismatch", row["reason"])
+            self.assertIn("late_reply", row["flags"])
+            self.assertIn("duplicate_replies", row["flags"])
+            self.assertTrue(any("untraceable evidence" in s for s in report["stop"]))
+
     def test_orphan_reply_is_unpaired(self):
         with tempfile.TemporaryDirectory() as d:
             m = write_set(Path(d), [REQ], [dict(REPLY, request_id="RQ-NONE", text="a")])

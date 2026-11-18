@@ -26,8 +26,10 @@ clock is never written into the report, so two runs produce identical bytes.
 
 Stop conditions (the report's `stop` list; the CLI exits 2): an ungranted input (a path the
 manifest does not list, or one outside its folder), an ambiguous normalization (texts equal only
-under a looser rule than the pinned one), a normalization version the code does not implement,
-and, with --gold, any wrong gold classification (exit 3).
+under a looser rule than the pinned one), untraceable evidence (a filing timed before every
+reply), an unreadable pinned source, a normalization version the code does not implement, and,
+with --gold, any wrong gold classification (exit 3). Every stop check runs for every request
+before its status is chosen, so no status can hide a stop or a secondary fact.
 """
 
 from __future__ import annotations
@@ -202,27 +204,20 @@ def classify(req: dict, replies: list[dict], filings: list[dict], receipts: list
         row["flags"].sort()
         return row
 
+    # Every check below runs before any return, so no status can hide a stop condition or a
+    # secondary fact (ANA Kate round 2; Codex review of 5121428). Order: read, facts, stops, status.
     texts: dict[str, str] = {}
+    text_problem = None
     for rec in replies + filings:
         text, why = inputs.text_of(rec)
         if text is None:
-            where = (rec.get("body") or {}).get("path")
-            return done("unknown", f"{why}: {where or 'inline text'} (cited by {rec['_locator']})")
+            if text_problem is None:
+                where = (rec.get("body") or {}).get("path")
+                text_problem = f"{why}: {where or 'inline text'} (cited by {rec['_locator']})"
+            continue
         texts[rec["_locator"]] = text
 
-    # Mandatory validation first, so no primary status can hide a stop condition (ANA Kate, round 2).
-    bad = [f for f in filings if f.get("provenance") not in ("original", "reconstruction")]
-    if bad:
-        return done("unknown", f"filing provenance must be 'original' or 'reconstruction', "
-                               f"got {bad[0].get('provenance')!r} at {bad[0]['_locator']}")
-    if replies:
-        first_reply = min(r.get("created_at", "") for r in replies)
-        early = [f for f in filings if f.get("filed_at", "") < first_reply]
-        if early:
-            inputs.stops.append(f"untraceable evidence for {req['id']}: filing precedes every reply")
-            return done("unknown", "filing event time precedes the reply it copies (untraceable order)")
-
-    # Secondary facts, gathered before the primary status so an earlier status can't drop them.
+    # Secondary facts: each is observable from the records alone, whatever the primary status.
     due = req.get("due_by")
     late = bool(due and any(r.get("created_at", "") > due for r in replies))
     failed = [r for r in receipts if r.get("kind") == "filing_failed"]
@@ -238,6 +233,41 @@ def classify(req: dict, replies: list[dict], filings: list[dict], receipts: list
         row["flags"].append("filing_without_reply")
     if failed:
         row["flags"].append("filing_failed_recorded")
+    lost = {r.get("original_sha256") for r in failed} - {None}
+    recovered = None
+    if failed and len(filings) == 1 and filings[0].get("provenance") == "original" \
+            and filings[0]["_locator"] in texts:
+        # Filed as "original" after a recorded failure: original only if its bytes are the lost ones.
+        recovered = sha256_bytes(texts[filings[0]["_locator"]].encode("utf-8")) in lost
+        row["flags"].append("original_recovered_by_digest" if recovered else "undeclared_reconstruction")
+
+    # Mandatory stop checks, each evaluated independently of the others and of any status.
+    untraceable = False
+    if replies:
+        first_reply = min(r.get("created_at", "") for r in replies)
+        if any(f.get("filed_at", "") < first_reply for f in filings):
+            untraceable = True
+            inputs.stops.append(f"untraceable evidence for {req['id']}: filing precedes every reply")
+    ambiguous = False
+    if len(replies) == 1 and len(filings) == 1:
+        rt, ft = texts.get(replies[0]["_locator"]), texts.get(filings[0]["_locator"])
+        if rt is not None and ft is not None:
+            a, b = normalize(rt), normalize(ft)
+            if a != b and loose(a) == loose(b):
+                ambiguous = True
+                inputs.stops.append(f"ambiguous normalization for {req['id']}")
+
+    # Validation failures: the evidence cannot be read as it stands, so the status is unknown.
+    if text_problem:
+        return done("unknown", text_problem)
+    bad = [f for f in filings if f.get("provenance") not in ("original", "reconstruction")]
+    if bad:
+        return done("unknown", f"filing provenance must be 'original' or 'reconstruction', "
+                               f"got {bad[0].get('provenance')!r} at {bad[0]['_locator']}")
+    if untraceable:
+        return done("unknown", "filing event time precedes the reply it copies (untraceable order)")
+    if ambiguous:
+        return done("unknown", f"equal only under a looser rule than {NORMALIZATION}")
 
     if req.get("route") in UNSUPPORTED_ROUTES:
         return done("unsupported", f"route {req.get('route')!r} has no unattended consumer")
@@ -253,25 +283,14 @@ def classify(req: dict, replies: list[dict], filings: list[dict], receipts: list
     lost_msg = "original filing lost; a reconstruction is not the original"
     if filings and filings[0].get("provenance") == "reconstruction":
         return done("missing_original", lost_msg)
-    if failed:
-        if not filings:
-            return done("missing_original", lost_msg)
-        # Filed as "original" after a recorded failure: original only if its bytes are the lost ones.
-        lost = {r.get("original_sha256") for r in failed} - {None}
-        if sha256_bytes(texts[filings[0]["_locator"]].encode("utf-8")) not in lost:
-            row["flags"].append("undeclared_reconstruction")
-            return done("missing_original", lost_msg)
-        row["flags"].append("original_recovered_by_digest")
+    if failed and (not filings or not recovered):
+        return done("missing_original", lost_msg)
 
     if not filings:
         return done("missing_filing", "reply read successfully; no filing found")
 
     filing = filings[0]
-    a, b = normalize(texts[reply["_locator"]]), normalize(texts[filing["_locator"]])
-    if a != b:
-        if loose(a) == loose(b):
-            inputs.stops.append(f"ambiguous normalization for {req['id']}")
-            return done("unknown", f"equal only under a looser rule than {NORMALIZATION}")
+    if normalize(texts[reply["_locator"]]) != normalize(texts[filing["_locator"]]):
         return done("mismatch", f"filing differs from reply under {NORMALIZATION}")
     if late:
         return done("late_reply", "filed unchanged, but the reply came after due_by")
