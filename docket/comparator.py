@@ -153,6 +153,13 @@ def record_shape_problem(role: str, rec: dict) -> str | None:
         return None
     if "text" in rec and not isinstance(rec["text"], str):
         return "text must be a string"
+    if isinstance(rec.get("text"), str):
+        try:
+            rec["text"].encode("utf-8")
+        except UnicodeEncodeError:
+            # JSON can escape a lone surrogate ("\ud800") that no UTF-8 text can hold; it would
+            # crash digesting later (Codex review of 2eb2faf).
+            return "text is not valid Unicode (lone surrogate)"
     if "body" in rec:
         body = rec["body"]
         if not isinstance(body, dict) or not _nonempty_str(body.get("path")):

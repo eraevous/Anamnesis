@@ -671,6 +671,16 @@ class CodexSecurityReviewD47e1b5(unittest.TestCase):
             report = comparator.run(write_set(Path(d), [dict(req, route="none")]))
             self.assertEqual(report["rows"][0]["status"], "unsupported")
 
+    def test_lone_surrogate_text_is_malformed_not_a_crash(self):
+        # Codex review of 2eb2faf: "\ud800" in an original filing after filing_failed crashed the run.
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [REQ], [dict(REPLY, text="a")], [dict(FILING, text="\ud800")],
+                          [{"request_id": "RQ-X", "kind": "filing_failed", "at": "2026-11-17T13:30:00Z",
+                            "original_sha256": sha("a")}])
+            report = comparator.run(m)  # must not raise
+            self.assertEqual({r["status"] for r in report["rows"]}, {"unknown"})
+            self.assertTrue(any("malformed_record" in s for s in report["stop"]))
+
     def test_unknown_offset_minus_zero_is_untraceable(self):
         self.assertIsNone(comparator.instant("2026-11-17T13:00:00-00:00"))
         self.assertIsNotNone(comparator.instant("2026-11-17T13:00:00+00:00"))
