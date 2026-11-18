@@ -128,6 +128,20 @@ def _nonempty_str(v) -> bool:
     return isinstance(v, str) and v != ""
 
 
+def has_lone_surrogate(value) -> bool:
+    """True if any string in a JSON value holds an escaped lone surrogate ("\\ud800").
+
+    JSON allows the escape, but no UTF-8 text can hold the character: digesting it or writing it
+    into the report would crash the run (Codex reviews of 2eb2faf and e4229ca). Such a record is
+    rejected when it is read, wherever the string sits.
+    """
+    try:
+        json.dumps(value, ensure_ascii=False).encode("utf-8")
+        return False
+    except UnicodeEncodeError:
+        return True
+
+
 def record_shape_problem(role: str, rec: dict) -> str | None:
     """Why a record's fields don't have the shapes the comparator relies on, or None.
 
@@ -135,6 +149,8 @@ def record_shape_problem(role: str, rec: dict) -> str | None:
     {"text": 42} or {"body": "x"} must be a malformed record of its source, not a wrong status or a
     crash. Times are not checked here; they are checked, and stop the run, where they are compared.
     """
+    if has_lone_surrogate(rec):
+        return "a string is not valid Unicode (lone surrogate)"
     if role == "requests":
         if not _nonempty_str(rec.get("id")):
             return "request id must be a non-empty string"
@@ -153,13 +169,7 @@ def record_shape_problem(role: str, rec: dict) -> str | None:
         return None
     if "text" in rec and not isinstance(rec["text"], str):
         return "text must be a string"
-    if isinstance(rec.get("text"), str):
-        try:
-            rec["text"].encode("utf-8")
-        except UnicodeEncodeError:
-            # JSON can escape a lone surrogate ("\ud800") that no UTF-8 text can hold; it would
-            # crash digesting later (Codex review of 2eb2faf).
-            return "text is not valid Unicode (lone surrogate)"
+
     if "body" in rec:
         body = rec["body"]
         if not isinstance(body, dict) or not _nonempty_str(body.get("path")):
@@ -180,6 +190,8 @@ class Inputs:
         raw = manifest_path.read_bytes()
         self.manifest_sha256 = sha256_bytes(raw)
         self.manifest = json.loads(raw)
+        if has_lone_surrogate(self.manifest):
+            raise Stop("manifest holds a string that is not valid Unicode (lone surrogate)")
         if self.manifest.get("schema") != MANIFEST_SCHEMA:
             raise Stop(f"manifest schema is {self.manifest.get('schema')!r}, expected {MANIFEST_SCHEMA}")
         if self.manifest.get("normalization") != NORMALIZATION:

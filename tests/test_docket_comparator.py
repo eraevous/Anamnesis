@@ -680,6 +680,25 @@ class CodexSecurityReviewD47e1b5(unittest.TestCase):
             self.assertEqual(report["rows"][0]["status"], "unknown")
             self.assertEqual(report["denominators"], {"supported": 0, "unsupported": 1})
 
+    def test_lone_surrogate_anywhere_in_a_record_cannot_block_the_report(self):
+        # Codex review of e4229ca: recipient "\ud800" aborted the CLI while writing the report.
+        cases = [("requests", dict(REQ, recipient="\ud800")), ("requests", dict(REQ, asked_at="\ud800")),
+                 ("replies", dict(REPLY, text="a", note="\ud800"))]
+        for role, rec in cases:
+            with tempfile.TemporaryDirectory() as d:
+                sets = {"requests": [REQ], "replies": [dict(REPLY, text="a")]}
+                sets[role] = [rec]
+                m = write_set(Path(d), sets["requests"], sets["replies"], [dict(FILING, text="a")])
+                out = Path(d) / "r.json"
+                self.assertEqual(comparator.main([str(m), "-o", str(out)]), 2, (role, rec))
+                self.assertTrue(any("malformed_record" in s for s in json.loads(out.read_text())["stop"]))
+        with tempfile.TemporaryDirectory() as d:  # the manifest itself
+            m = write_set(Path(d), [REQ])
+            mf = json.loads(m.read_text())
+            mf["window"] = "\ud800"
+            m.write_text(json.dumps(mf))
+            self.assertEqual(comparator.main([str(m), "-o", str(Path(d) / "r.json")]), 2)
+
     def test_lone_surrogate_text_is_malformed_not_a_crash(self):
         # Codex review of 2eb2faf: "\ud800" in an original filing after filing_failed crashed the run.
         with tempfile.TemporaryDirectory() as d:
