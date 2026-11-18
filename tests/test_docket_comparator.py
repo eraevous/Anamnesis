@@ -655,5 +655,22 @@ class CopilotReviewD47e1b5(unittest.TestCase):
                 self.assertTrue(any("ungranted" in s for s in report["stop"]), role)
 
 
+class CodexSecurityReviewD47e1b5(unittest.TestCase):
+    def test_supported_request_without_due_by_is_untraceable(self):
+        req = {k: v for k, v in REQ.items() if k != "due_by"}
+        late_pair = ([dict(REPLY, text="a", created_at="2026-11-17T20:00:00Z")],
+                     [dict(FILING, text="a", filed_at="2026-11-17T21:00:00Z")])
+        for replies, filings in (([], []), late_pair):
+            with tempfile.TemporaryDirectory() as d:
+                m = write_set(Path(d), [req], replies, filings)
+                report = comparator.run(m)
+                self.assertEqual(report["rows"][0]["status"], "unknown")
+                self.assertTrue(any("untraceable" in s for s in report["stop"]))
+                self.assertEqual(comparator.main([str(m), "-o", str(Path(d) / "r.json")]), 2)
+        with tempfile.TemporaryDirectory() as d:  # unsupported routes are never judged on time
+            report = comparator.run(write_set(Path(d), [dict(req, route="none")]))
+            self.assertEqual(report["rows"][0]["status"], "unsupported")
+
+
 if __name__ == "__main__":
     unittest.main()

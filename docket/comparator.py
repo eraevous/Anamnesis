@@ -390,6 +390,10 @@ def classify(req: dict, replies: list[dict], filings: list[dict], receipts: list
         due = instant(req["due_by"])
         if due is None:
             bad_time = f"due_by {req['due_by']!r} at {req['_locator']}"
+    elif req.get("route") not in UNSUPPORTED_ROUTES:
+        # A supported request needs a deadline (Codex security review of d47e1b5): without one,
+        # a missing reply would read as pending forever and a late reply as on time.
+        bad_time = f"due_by missing at {req['_locator']}"
     reply_at = {}
     for r in replies:
         reply_at[r["_locator"]] = t = instant(r.get("created_at"))
