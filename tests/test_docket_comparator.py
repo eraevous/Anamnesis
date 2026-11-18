@@ -671,6 +671,15 @@ class CodexSecurityReviewD47e1b5(unittest.TestCase):
             report = comparator.run(write_set(Path(d), [dict(req, route="none")]))
             self.assertEqual(report["rows"][0]["status"], "unsupported")
 
+    def test_denominator_follows_route_not_status(self):
+        # Codex review of 125925a: an unsupported request that became unknown moved to "supported".
+        with tempfile.TemporaryDirectory() as d:
+            m = write_set(Path(d), [dict(REQ, route="none")], [dict(REPLY, body={"path": "gone.txt"})],
+                          extra_sources=[{"role": "body", "path": "gone.txt", "sha256": "0"}])
+            report = comparator.run(m)
+            self.assertEqual(report["rows"][0]["status"], "unknown")
+            self.assertEqual(report["denominators"], {"supported": 0, "unsupported": 1})
+
     def test_lone_surrogate_text_is_malformed_not_a_crash(self):
         # Codex review of 2eb2faf: "\ud800" in an original filing after filing_failed crashed the run.
         with tempfile.TemporaryDirectory() as d:

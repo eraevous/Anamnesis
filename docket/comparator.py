@@ -579,6 +579,12 @@ def run(manifest_path: Path, code_version: str = "unpinned") -> dict:
                              "event_times": {k: v for k, v in times.items() if v},
                              "observed_at": observed_at, "evidence": _evidence([x])})
 
+    # Denominator membership comes from the governing request's route, not from the row's status
+    # (Codex review of 125925a): an unsupported request whose evidence is unreadable is `unknown`
+    # but stays in the unsupported denominator. A duplicated request id has no governing request,
+    # so it is counted as supported, as before.
+    unsupported_ids = {rid for rid, r in by_req.items()
+                       if isinstance(r, dict) and r.get("route") in UNSUPPORTED_ROUTES}
     counts = {s: 0 for s in STATUSES}
     for r in rows:
         counts[r["status"]] += 1
@@ -590,8 +596,10 @@ def run(manifest_path: Path, code_version: str = "unpinned") -> dict:
         "observed_at": observed_at,
         "window": inputs.manifest.get("window"),
         "denominators": {
-            "supported": sum(v for k, v in counts.items() if k not in ("unsupported", "unpaired")),
-            "unsupported": counts["unsupported"],
+            "supported": sum(1 for r in rows if r["status"] != "unpaired"
+                             and r["request_id"] not in unsupported_ids),
+            "unsupported": sum(1 for r in rows if r["status"] != "unpaired"
+                               and r["request_id"] in unsupported_ids),
         },
         "counts": counts,
         "stop": sorted(set(inputs.stops)),
