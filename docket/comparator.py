@@ -76,8 +76,8 @@ def normalize(text: str) -> str:
 
 
 # RFC 3339 section 5.6 date-time: full date, "T", full time with optional fraction, and an offset.
-_RFC3339 = re.compile(r"\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?P<off>[Zz]|[+-]\d{2}:\d{2})",
-                      re.ASCII)
+_RFC3339 = re.compile(r"(?P<sec>\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2})(?:\.(?P<frac>\d+))?"
+                      r"(?P<off>[Zz]|[+-]\d{2}:\d{2})", re.ASCII)
 
 
 def instant(value) -> datetime | None:
@@ -87,6 +87,9 @@ def instant(value) -> datetime | None:
     The syntax is checked against RFC 3339 first (Codex review of e9358b4): `fromisoformat()` alone
     accepts basic-format times such as 20261117T130000Z and folds an impossible offset like +00:60
     into +01:00. Component ranges are then checked by the datetime constructor.
+    A fraction finer than a microsecond cannot be held by datetime, which would truncate it and let
+    distinct instants compare equal (Codex review of 27497a6). Digits past the sixth must all be
+    zero; otherwise the time is not faithfully representable and is treated as unreadable.
     """
     if not isinstance(value, str):
         return None
@@ -96,8 +99,12 @@ def instant(value) -> datetime | None:
     off = m.group("off")
     if off not in ("Z", "z") and (int(off[1:3]) > 23 or int(off[4:6]) > 59):
         return None
+    frac = m.group("frac") or ""
+    if frac[6:].strip("0"):
+        return None
+    frac = f".{frac[:6]}" if frac else ""
     try:
-        dt = datetime.fromisoformat(value[:-1] + "+00:00" if off in ("Z", "z") else value)
+        dt = datetime.fromisoformat(m.group("sec") + frac + ("+00:00" if off in ("Z", "z") else off))
     except ValueError:
         return None
     return dt.astimezone(timezone.utc)
@@ -269,11 +276,11 @@ def classify(req: dict, replies: list[dict], filings: list[dict], receipts: list
     bad_time = None
     due = None
     asked = None
-    if req.get("asked_at") is not None or replies or filings:
-        # A reply or filing can only be placed in the request's interval if asked_at is readable.
-        asked = instant(req.get("asked_at"))
-        if asked is None:
-            bad_time = f"asked_at {req.get('asked_at')!r} at {req['_locator']}"
+    # Every request needs a readable asked_at, events or not (Codex security review of 27497a6):
+    # without it, neither a reply nor its absence (missing_reply, pending) can be attributed.
+    asked = instant(req.get("asked_at"))
+    if asked is None:
+        bad_time = f"asked_at {req.get('asked_at')!r} at {req['_locator']}"
     if req.get("due_by") is not None:
         due = instant(req["due_by"])
         if due is None:
@@ -320,7 +327,11 @@ def classify(req: dict, replies: list[dict], filings: list[dict], receipts: list
         # e9358b4): evidence dated before the request or after the snapshot cannot be traced to it.
         snapshot = instant(observed_at)
         events = list(reply_at.values()) + list(filed_at.values())
-        if any(t < asked for t in events):
+        if asked > snapshot:
+            # A request dated after the snapshot was not yet asked when it was taken.
+            untraceable = "request asked_at is after the snapshot's observed_at (untraceable order)"
+            inputs.stops.append(f"untraceable evidence for {req['id']}: asked_at after observed_at")
+        elif any(t < asked for t in events):
             untraceable = "event time precedes the request (untraceable order)"
             inputs.stops.append(f"untraceable evidence for {req['id']}: event before asked_at")
         elif any(t > snapshot for t in events):

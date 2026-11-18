@@ -23,6 +23,10 @@ running again.
 - **Inputs:** `manifest.json` lists every file the comparator may read, with its sha256. Nothing else is
   read. A file whose bytes don't match is `unknown`, never `missing`. The report carries the manifest's
   digest.
+- **Times:** RFC 3339 with an offset, compared as UTC instants to the microsecond (finer nonzero
+  digits are unreadable, not truncated). Every request needs a readable `asked_at` no later than the
+  snapshot, and every event must sit in asked_at <= reply <= filing <= observed_at. Otherwise the row is
+  `unknown` and the run stops (untraceable evidence).
 - **Window:** fixed in the manifest before any observation: two eligible scheduled consumer wakes and a
   24-hour wall cap.
 
