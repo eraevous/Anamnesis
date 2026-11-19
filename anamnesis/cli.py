@@ -39,3 +39,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     except InstanceError as exc:
         print(f"anamnesis: {exc}", file=sys.stderr)
         return 1
+    except (OSError, UnicodeError) as exc:  # permissions, full disk, undecodable files: reported, no traceback
+        print(f"anamnesis: {exc}", file=sys.stderr)
+        return 1

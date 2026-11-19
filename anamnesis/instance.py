@@ -194,7 +194,10 @@ def init_instance(path: Path, name: str | None = None, demo: bool = False) -> In
 
     gi = root / ".gitignore"
     if gi.exists():
-        current = gi.read_text(encoding="utf-8").splitlines()
+        try:
+            current = gi.read_text(encoding="utf-8").splitlines()
+        except (OSError, UnicodeDecodeError) as exc:
+            raise InstanceError(f"{gi}: cannot read it as UTF-8 text: {exc}") from exc
         missing = [line for line in GITIGNORE_LINES[1:] if line not in current]
         if missing:
             with gi.open("a", encoding="utf-8") as fh:
@@ -229,15 +232,25 @@ def init_instance(path: Path, name: str | None = None, demo: bool = False) -> In
 
 def _refuse_redirects(root: Path, rels: List[str]) -> None:
     """Refuse, before writing anything, any write path that is or passes through a symlink inside
-    the instance (it could send a write outside it), or a layout directory that exists as a file."""
+    the instance (it could send a write outside it), whose parent components exist as non-directories,
+    or whose destination exists as the wrong kind: a directory destination that is not a directory,
+    or a file destination that is not a regular file."""
+    dir_rels = set(INSTANCE_LAYOUT) | {"sources/demo"}
     for rel in rels:
         current = root
-        for part in Path(rel).parts:
+        parts = Path(rel).parts
+        for i, part in enumerate(parts):
             current = current / part
             if current.is_symlink():
                 raise InstanceError(f"{current} is a symlink; init writes only inside the instance and will not follow it")
-        if rel in INSTANCE_LAYOUT and current.exists() and not current.is_dir():
-            raise InstanceError(f"{current} exists and is not a directory")
+            last = i == len(parts) - 1
+            if not current.exists():
+                continue
+            if not last or rel in dir_rels:
+                if not current.is_dir():
+                    raise InstanceError(f"{current} exists and is not a directory")
+            elif not current.is_file():
+                raise InstanceError(f"{current} exists and is not a regular file")
 
 
 def _create_if_missing(path: Path, text: str, report: InitReport) -> None:

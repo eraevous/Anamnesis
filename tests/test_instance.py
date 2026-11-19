@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -143,6 +144,25 @@ class InitTests(unittest.TestCase):
         init_instance(inst, name="ok", demo=True)  # a retry with a good name works
         self.assertEqual(load_manifest(inst)["name"], "ok")
 
+    def test_wrong_kind_anywhere_on_a_write_path_is_refused_before_any_write(self):
+        """Copilot review of 879720a: files at `rendered` or `sources/demo` failed after partial
+        creation, and a directory at claims/ledger.jsonl was silently kept."""
+        cases = [("rendered", "file", False), ("sources/demo", "file", True),
+                 ("claims/ledger.jsonl", "dir", False), (".gitignore", "dir", False),
+                 (MANIFEST_NAME, "dir", False)]
+        for rel, kind, demo in cases:
+            inst = self.tmp / ("inst-" + rel.replace("/", "-").strip("."))
+            target = inst / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if kind == "file":
+                target.write_text("x")
+            else:
+                target.mkdir()
+            before = tree_digest(inst)
+            with self.assertRaises(InstanceError, msg=rel):
+                init_instance(inst, demo=demo)
+            self.assertEqual(tree_digest(inst), before, rel)
+
     def test_path_that_is_a_file_is_refused(self):
         f = self.tmp / "afile"
         f.write_text("x")
@@ -244,6 +264,27 @@ class CliTests(unittest.TestCase):
             r = self.run_cli("check", tmp)
             self.assertEqual(r.returncode, 1)
             self.assertIn("privacy.visibility", r.stderr)
+            self.assertNotIn("Traceback", r.stderr)
+
+    def test_undecodable_gitignore_and_unwritable_folder_fail_cleanly(self):
+        """Copilot review of 879720a: these escaped the CLI as tracebacks."""
+        with tempfile.TemporaryDirectory() as tmp:
+            inst = Path(tmp) / "bad-gitignore"
+            inst.mkdir()
+            (inst / ".gitignore").write_bytes(b"\xff\xfe\x00bad")
+            r = self.run_cli("init", str(inst))
+            self.assertEqual(r.returncode, 1)
+            self.assertIn(".gitignore", r.stderr)
+            self.assertNotIn("Traceback", r.stderr)
+            locked = Path(tmp) / "locked"
+            locked.mkdir()
+            locked.chmod(0o500)
+            try:
+                r = self.run_cli("init", str(locked / "memory"))
+            finally:
+                locked.chmod(0o700)
+            if os.geteuid() != 0:  # root ignores the permission bits
+                self.assertEqual(r.returncode, 1)
             self.assertNotIn("Traceback", r.stderr)
 
     def test_usage_error(self):
