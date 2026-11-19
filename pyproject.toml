@@ -1,0 +1,19 @@
+# Packaging for the engine (HO-ANA-20261118-6H0J item 4, cold test step 1: install Anamnesis).
+# Standard library only at run time: no dependencies are declared, and none may be added without a decision.
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "anamnesis"
+version = "0.1.0"
+description = "Offline memory engine: branch-aware message units, FTS5 index, cited extractive answers"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+anamnesis = "anamnesis.cli:main"
+
+[tool.setuptools]
+packages = ["anamnesis"]
