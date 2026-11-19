@@ -21,6 +21,9 @@ operated by agents in which knowledge is versioned like code. Purpose and status
   platform and model.
 - `index.py`: a message-level SQLite FTS5 index; hits name their unit and its branch.
 - `embedder.py`: the `Embedder` interface (`model_id`, `dim`, `embed`) and a non-semantic hashing stand-in.
+- `answer.py`: `ingest` exports into an index and `ask` a question. The answer is extractive: each line
+  quotes one unit and names its id, speaker, conversation and branch; the active path is searched first,
+  alternates only when it has no hit (labelled as not the chosen reply); no hit means no answer.
 
 ```python
 from anamnesis import bundles_from_export, MessageIndex
@@ -28,6 +31,13 @@ with MessageIndex("index.sqlite") as ix:
     ix.add(bundles_from_export("fixtures/F-11/conversation.json"))
     for hit in ix.search("zephyrine backup agreed"):
         print(hit.message_unit_id, hit.branch_status, hit.snippet)
+```
+
+```python
+from anamnesis import MessageIndex, ask, ingest
+with MessageIndex() as ix:
+    ingest(ix, ["fixtures/F-00/conversation.json"])
+    print(ask(ix, "what did I call emergent routing?").render())
 ```
 
 Ported from the private rescue repository (anamnesis-spike-rescue) with synthetic tests only:
