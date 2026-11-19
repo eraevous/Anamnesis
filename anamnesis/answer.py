@@ -15,8 +15,10 @@ Reviewer guide:
   plainly that nothing in this memory matched. The engine never falls back to a guess.
 - Branches: the active path is searched first. Only when it has no hit are alternate (regenerated-away)
   units searched, and each such citation is labelled as not the chosen reply.
-- A `Hit` snippet marks matched words with `[` and `]`; `Citation.quote` keeps those marks, and
-  `Citation.plain_quote` drops them for display.
+- Quotes are the unit's own text, unhighlighted (`MessageIndex.search(highlight=False)`), so a literal
+  `[` or `]` in a source survives; "…" marks where a long unit was cut.
+- Branch labels: `alternate` is a regenerated-away reply ("not the chosen reply"); `unknown` means the
+  export doesn't record which reply was chosen, and is labelled as undetermined, never as discarded.
 """
 
 from __future__ import annotations
@@ -46,11 +48,7 @@ class Citation:
     title: str
     author_role: str
     branch_status: str
-    quote: str  # the index snippet, matched words in [brackets]
-
-    @property
-    def plain_quote(self) -> str:
-        return self.quote.replace("[", "").replace("]", "")
+    quote: str  # the unit's text, cut with "…" around the match when long; no highlight marks
 
     @property
     def is_active(self) -> bool:
@@ -63,7 +61,7 @@ class Citation:
             "title": self.title,
             "author_role": self.author_role,
             "branch_status": self.branch_status,
-            "quote": self.plain_quote,
+            "quote": self.quote,
         }
 
 
@@ -89,10 +87,17 @@ class Answer:
             return "Nothing in this memory matches that question, so there is no answer to cite."
         lines = [f"From {len(self.citations)} source message(s):"]
         for n, c in enumerate(self.citations, 1):
-            branch = "" if c.is_active else f", {c.branch_status} branch (not the chosen reply)"
-            lines.append(f'[{n}] "{c.plain_quote}"')
+            branch = _BRANCH_NOTE.get(c.branch_status, f", {c.branch_status} branch")
+            lines.append(f'[{n}] "{c.quote}"')
             lines.append(f"    {c.author_role} in \"{c.title}\"{branch}; source {c.message_unit_id}")
         return "\n".join(lines)
+
+
+_BRANCH_NOTE = {
+    BranchStatus.ACTIVE.value: "",
+    BranchStatus.ALTERNATE.value: ", alternate branch (not the chosen reply)",
+    BranchStatus.UNKNOWN.value: ", branch undetermined (the export doesn't record which reply was chosen)",
+}
 
 
 def ingest(index: MessageIndex, exports: Iterable[str | Path]) -> IngestReport:
@@ -116,7 +121,7 @@ def ask(index: MessageIndex, question: str, *, limit: int = 3) -> Answer:
     """Answer `question` with up to `limit` quoted, cited units; active path first."""
     if limit < 1:
         raise ValueError("limit must be at least 1")
-    hits: List[Hit] = index.search(question, limit=limit, active_only=True)
+    hits: List[Hit] = index.search(question, limit=limit, active_only=True, highlight=False)
     if not hits:
-        hits = index.search(question, limit=limit)
+        hits = index.search(question, limit=limit, highlight=False)
     return Answer(question, tuple(_citation(h) for h in hits))

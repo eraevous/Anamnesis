@@ -149,7 +149,10 @@ class MessageIndex:
     def count(self) -> int:
         return self.con.execute("SELECT count(*) FROM units").fetchone()[0]
 
-    def search(self, query: str, *, limit: int = 10, active_only: bool = False) -> List[Hit]:
+    def search(self, query: str, *, limit: int = 10, active_only: bool = False,
+               highlight: bool = True) -> List[Hit]:
+        """Ranked hits. `highlight` marks matched words in the snippet with [ and ]; pass False
+        for a snippet that is the unit's text unchanged (apart from "…" where it is cut)."""
         words = query_terms(query)
         words = [w for w in words if w.lower() not in STOPWORDS] or words
         if not words:
@@ -157,11 +160,12 @@ class MessageIndex:
         match = " OR ".join('"' + w.replace('"', '""') + '"' for w in words)
         sql = (
             "SELECT u.message_unit_id, u.conversation_id, u.title, u.branch_status, u.author_role,"
-            " snippet(units_fts, 0, '[', ']', '…', 16), bm25(units_fts)"
+            " snippet(units_fts, 0, ?, ?, '…', 16), bm25(units_fts)"
             " FROM units_fts JOIN units u ON u.rowid = units_fts.rowid"
             " WHERE units_fts MATCH ?"
         )
-        params: list = [match]
+        params: list = ["[", "]"] if highlight else ["", ""]
+        params.append(match)
         if active_only:
             sql += " AND u.branch_status = ?"
             params.append(BranchStatus.ACTIVE.value)

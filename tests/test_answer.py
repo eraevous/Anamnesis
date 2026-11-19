@@ -65,7 +65,7 @@ class AskTests(unittest.TestCase):
             unit = self.units[c.message_unit_id]
             self.assertEqual(c.branch_status, unit.branch_status.value)
             self.assertEqual(c.author_role, unit.author_role)
-            for piece in c.plain_quote.split("…"):
+            for piece in c.quote.split("…"):
                 self.assertIn(piece.strip(), unit.text)
 
     def test_answer_cites_a_gold_anchor_on_the_active_path(self):
@@ -133,6 +133,48 @@ class AskTests(unittest.TestCase):
             self.assertNotIn("[", c["quote"])
             self.assertEqual(set(c), {"message_unit_id", "conversation_id", "title", "author_role",
                                       "branch_status", "quote"})
+
+
+class QuoteAndBranchLabelTests(unittest.TestCase):
+    """Codex review of 84dd33b: literal brackets survive; unknown branches aren't called discarded."""
+
+    @staticmethod
+    def export(tmp: str, texts, current_node=True) -> Path:
+        mapping, parent = {"root": {"id": "root", "message": None, "parent": None, "children": []}}, "root"
+        for i, (role, text) in enumerate(texts):
+            nid = f"m{i}"
+            mapping[nid] = {"id": nid, "parent": parent, "children": [],
+                            "message": {"id": nid, "author": {"role": role}, "create_time": 1800000000 + i,
+                                        "content": {"content_type": "text", "parts": [text]}}}
+            mapping[parent]["children"].append(nid)
+            parent = nid
+        convo = {"id": "conv-q", "title": "q", "mapping": mapping}
+        if current_node:
+            convo["current_node"] = parent
+        path = Path(tmp) / "conversations.json"
+        path.write_text(json.dumps([convo]), encoding="utf-8")
+        return path
+
+    def test_literal_brackets_in_a_source_are_quoted_unchanged(self):
+        with tempfile.TemporaryDirectory() as tmp, MessageIndex() as ix:
+            ingest(ix, [self.export(tmp, [("user", "Use values[0] for routing."), ("assistant", "ok")])])
+            answer = ask(ix, "routing")
+            self.assertEqual(answer.citations[0].quote, "Use values[0] for routing.")
+            self.assertEqual(answer.to_dict()["citations"][0]["quote"], "Use values[0] for routing.")
+            self.assertIn('"Use values[0] for routing."', answer.render())
+            # the index keeps highlighting by default
+            self.assertIn("[routing]", ix.search("routing")[0].snippet)
+
+    def test_unknown_branch_is_labelled_undetermined_not_discarded(self):
+        with tempfile.TemporaryDirectory() as tmp, MessageIndex() as ix:
+            ingest(ix, [self.export(tmp, [("user", "the kestrel plan"), ("assistant", "noted")],
+                                    current_node=False)])
+            answer = ask(ix, "kestrel")
+            self.assertTrue(answer.found)
+            self.assertEqual({c.branch_status for c in answer.citations}, {"unknown"})
+            text = answer.render()
+            self.assertIn("branch undetermined", text)
+            self.assertNotIn("not the chosen reply", text)
 
 
 class FreshProcessTests(unittest.TestCase):
