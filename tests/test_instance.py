@@ -163,6 +163,39 @@ class InitTests(unittest.TestCase):
                 init_instance(inst, demo=demo)
             self.assertEqual(tree_digest(inst), before, rel)
 
+    def test_hard_linked_gitignore_is_refused(self):
+        """Copilot review of a2171e9: an append to a hard-linked .gitignore changed an outside file."""
+        outside = self.tmp / "outside-ignore"
+        outside.write_text("*.pyc\n")
+        inst = self.tmp / "memory"
+        inst.mkdir()
+        os.link(outside, inst / ".gitignore")
+        with self.assertRaises(InstanceError):
+            init_instance(inst)
+        self.assertEqual(outside.read_text(), "*.pyc\n")
+        self.assertEqual(sorted(p.name for p in inst.iterdir()), [".gitignore"])
+
+    def test_blank_folder_name_falls_back_before_any_write(self):
+        """Copilot review of a2171e9: a whitespace basename copied demo files, then failed validation."""
+        inst = self.tmp / "   "
+        init_instance(inst, demo=True)
+        self.assertEqual(load_manifest(inst)["name"], "memory")
+
+    def test_load_manifest_expands_the_home_folder(self):
+        """Copilot review of a2171e9: init expanded ~ but check did not."""
+        home = self.tmp / "home"
+        home.mkdir()
+        old = os.environ.get("HOME")
+        os.environ["HOME"] = str(home)
+        try:
+            init_instance("~/memory")
+            self.assertEqual(load_manifest("~/memory")["name"], "memory")
+        finally:
+            if old is None:
+                del os.environ["HOME"]
+            else:
+                os.environ["HOME"] = old
+
     def test_path_that_is_a_file_is_refused(self):
         f = self.tmp / "afile"
         f.write_text("x")

@@ -135,7 +135,7 @@ def validate_manifest(manifest: Any) -> List[str]:
 
 def load_manifest(path: Path) -> Dict[str, Any]:
     """Read and validate an instance's manifest; raises InstanceError listing every problem."""
-    mpath = Path(path) / MANIFEST_NAME
+    mpath = Path(path).expanduser() / MANIFEST_NAME
     if not mpath.is_file():
         raise InstanceError(f"{path} is not an anamnesis instance (no {MANIFEST_NAME})")
     try:
@@ -159,6 +159,7 @@ def init_instance(path: Path, name: str | None = None, demo: bool = False) -> In
         raise InstanceError(f"{root} exists and is not a directory")
     if name is not None and (not isinstance(name, str) or not name.strip()):
         raise InstanceError("name must be a non-empty string")  # checked before any write
+    effective_name = name if name is not None else (root.resolve().name.strip() or "memory")
     report = InitReport(path=root)
     manifest_path = root / MANIFEST_NAME
     existing_manifest = manifest_path.exists()
@@ -210,7 +211,7 @@ def init_instance(path: Path, name: str | None = None, demo: bool = False) -> In
         _create_if_missing(gi, "\n".join(GITIGNORE_LINES) + "\n", report)
 
     if not existing_manifest:
-        manifest = default_manifest(name or root.resolve().name or "memory")
+        manifest = default_manifest(effective_name)
         if demo:
             dest = root / "sources" / "demo"
             dest.mkdir(parents=True, exist_ok=True)
@@ -251,6 +252,8 @@ def _refuse_redirects(root: Path, rels: List[str]) -> None:
                     raise InstanceError(f"{current} exists and is not a directory")
             elif not current.is_file():
                 raise InstanceError(f"{current} exists and is not a regular file")
+            elif current.stat().st_nlink > 1:  # a hard link would carry an append to another path
+                raise InstanceError(f"{current} has other hard links; init will not write to it")
 
 
 def _create_if_missing(path: Path, text: str, report: InitReport) -> None:
