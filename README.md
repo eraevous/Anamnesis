@@ -11,7 +11,7 @@ operated by agents in which knowledge is versioned like code. Purpose and status
 ## Engine (offline core)
 
 `anamnesis/` is the engine: standard library only, offline, and independent of any memory instance
-(Zach's own memory repository is one instance; `anamnesis init` to create one is the next step).
+(Zach's own memory repository is one instance; `anamnesis init` creates one, see Instances below).
 
 - `units.py`: parses a ChatGPT export (ZIP, folder, sharded folder or `conversations.json`) into
   `anamnesis.message-unit.v1` units, one per node, every branch kept and labelled `active`,
@@ -42,3 +42,29 @@ with MessageIndex() as ix:
 
 Ported from the private rescue repository (anamnesis-spike-rescue) with synthetic tests only:
 `python3 -m unittest discover -s tests`.
+
+## Instances
+
+An instance is a folder one person owns: their sources, what the engine derives from them, and the
+rules for both. The engine never depends on one.
+
+```bash
+python3 -m anamnesis init ~/memory           # new instance, or add the missing parts in place
+python3 -m anamnesis init ~/demo --demo      # a demo instance from the synthetic fixtures
+python3 -m anamnesis check ~/memory          # validate the manifest
+```
+
+| Path | Holds |
+|---|---|
+| `anamnesis.instance.json` | the manifest: sources, embedder, shelves, privacy |
+| `sources/` | raw exports (git-ignored by default) |
+| `claims/ledger.jsonl` | the claim ledger, append-only |
+| `rendered/frames/`, `rendered/films/`, `rendered/saga/` | rendered Frames, Films and the saga |
+| `library/` | standalone artifacts the owner curates (an existing one is kept as is) |
+| `runs/` | one record per engine run |
+| `.anamnesis/` | local caches such as the FTS5 index (git-ignored; where indexes live is still open) |
+
+`init` never overwrites, moves or deletes a file, so an existing repository can adopt the layout in
+place. The manifest's `privacy` block (visibility, `sealed`, `opaque`, `profile_only`,
+`agent_access`) records proposed features and is not enforced yet. `--demo` needs a repository
+checkout, because the fixtures are not packaged yet.
