@@ -1,0 +1,145 @@
+"""Where an instance's index lives: a backend interface (HO-ANA-20261118-6H0J item 3).
+
+Reviewer guide:
+- The index is a cache derived from sources (index.py says so). A backend only decides where a
+  built index file is kept and how it is found again; it never parses or indexes anything itself.
+- Every built index is keyed by `sources_digest`: a SHA-256 over the source files' relative paths
+  and bytes, plus the index schema version. Changing any source, or the schema, changes the key,
+  so a stale index is never served; it is rebuilt.
+- `open_index` builds into a temporary file in the destination folder and renames it into place,
+  so a reader never sees a half-built index and a crash leaves the old one intact.
+- Two backends ship, both local and standard library only:
+  - `CacheStore`: `<cache_dir>/<digest>.sqlite`, outside git; a fresh clone rebuilds on first use.
+  - `InRepoStore`: one tracked file (default `<instance>/index/messages.sqlite`) plus a sidecar
+    `<file>.digest`; a fresh clone gets it with the repository (plain git or LFS).
+- Hosted storage (S3 or similar) fits the same two methods (`fetch`, `publish`) but is not built
+  here: creating hosted storage is outside the handoff's grant. docs/research/index-storage.md
+  measures the local options and models the hosted one; the choice is Zach's.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import os
+import tempfile
+from pathlib import Path
+from typing import Callable, Iterable, Optional, Protocol, runtime_checkable
+
+from .index import INDEX_SCHEMA_VERSION, MessageIndex
+
+
+def sources_digest(root: str | Path, files: Iterable[str | Path]) -> str:
+    """SHA-256 over the schema version and each file's path (relative to `root`) and bytes."""
+    root = Path(root)
+    h = hashlib.sha256(INDEX_SCHEMA_VERSION.encode("utf-8") + b"\0")
+    rels = sorted({Path(f).resolve().relative_to(root.resolve()).as_posix() for f in files})
+    for rel in rels:
+        data = (root / rel).read_bytes()
+        h.update(rel.encode("utf-8") + b"\0" + str(len(data)).encode("ascii") + b"\0" + data)
+    return h.hexdigest()
+
+
+@runtime_checkable
+class IndexStore(Protocol):
+    name: str
+
+    def fetch(self, digest: str) -> Optional[Path]:
+        """The path of an index built for `digest`, or None if this store has none."""
+
+    def destination(self, digest: str) -> Path:
+        """Where a freshly built index for `digest` should be renamed to."""
+
+    def publish(self, digest: str, path: Path) -> None:
+        """Record that `path` (already at `destination(digest)`) holds the index for `digest`."""
+
+
+class CacheStore:
+    """A local cache outside git, one file per digest. Old digests are left for `prune`."""
+
+    name = "cache"
+
+    def __init__(self, cache_dir: str | Path) -> None:
+        self.dir = Path(cache_dir).expanduser()
+
+    def destination(self, digest: str) -> Path:
+        return self.dir / f"{digest}.sqlite"
+
+    def fetch(self, digest: str) -> Optional[Path]:
+        path = self.destination(digest)
+        return path if path.is_file() else None
+
+    def publish(self, digest: str, path: Path) -> None:
+        pass  # the file name is the record
+
+    def prune(self, keep: str) -> int:
+        """Delete cached indexes for every digest but `keep`. Returns how many were removed."""
+        removed = 0
+        for p in self.dir.glob("*.sqlite"):
+            if p.stem != keep and len(p.stem) == 64:
+                p.unlink()
+                removed += 1
+        return removed
+
+
+class InRepoStore:
+    """One tracked index file and a `.digest` sidecar naming the sources it was built from."""
+
+    name = "in-repo"
+
+    def __init__(self, path: str | Path) -> None:
+        self.path = Path(path).expanduser()
+        self.sidecar = self.path.with_name(self.path.name + ".digest")
+
+    def destination(self, digest: str) -> Path:
+        return self.path
+
+    def fetch(self, digest: str) -> Optional[Path]:
+        try:
+            recorded = self.sidecar.read_text(encoding="ascii").strip()
+        except (OSError, UnicodeError):
+            return None
+        return self.path if recorded == digest and self.path.is_file() else None
+
+    def publish(self, digest: str, path: Path) -> None:
+        _atomic_write(self.sidecar, (digest + "\n").encode("ascii"))
+
+
+def _atomic_write(path: Path, data: bytes) -> None:
+    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "wb") as fh:
+            fh.write(data)
+        os.replace(tmp, path)
+    except BaseException:
+        Path(tmp).unlink(missing_ok=True)
+        raise
+
+
+def open_index(
+    store: IndexStore, digest: str, build: Callable[[MessageIndex], None]
+) -> tuple[MessageIndex, bool]:
+    """Open the index for `digest` from `store`, building it with `build` if the store has none.
+
+    Returns (index, built). `build` receives an empty index and fills it (e.g. `idx.add(bundles)`).
+    """
+    found = store.fetch(digest)
+    if found is not None:
+        return MessageIndex(found), False
+    dest = store.destination(digest)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    # A private build folder beside the destination, so the final rename stays on one filesystem.
+    workdir = Path(tempfile.mkdtemp(dir=dest.parent, prefix=f".{dest.name}.", suffix=".building"))
+    tmp = workdir / "index.sqlite"
+    try:
+        idx = MessageIndex(tmp)
+        try:
+            build(idx)
+        finally:
+            idx.close()
+        os.replace(tmp, dest)
+    finally:
+        for leftover in workdir.iterdir():
+            leftover.unlink()
+        workdir.rmdir()
+    store.publish(digest, dest)
+    return MessageIndex(dest), True
