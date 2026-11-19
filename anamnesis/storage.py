@@ -106,16 +106,27 @@ def recorded_digest(path: Path) -> Optional[str]:
     return row[0] if row else None
 
 
-def open_index(
-    store: IndexStore, digest: str, build: Callable[[MessageIndex], None]
-) -> tuple[MessageIndex, bool]:
-    """Open the index for `digest` from `store`, building it with `build` if the store has none.
+def _open_verified(path: Path, digest: str) -> Optional[MessageIndex]:
+    """Open `path` and check the digest on that same connection.
 
-    Returns (index, built). `build` receives an empty index and fills it (e.g. `idx.add(bundles)`).
+    A connection stays on the file it opened even if the path is replaced afterwards, so checking
+    through it (not through the path, earlier) is what makes the returned index the requested one.
     """
-    found = store.fetch(digest)
-    if found is not None:
-        return MessageIndex(found), False
+    try:
+        idx = MessageIndex(path)
+    except (sqlite3.Error, ValueError):
+        return None
+    try:
+        row = idx.con.execute("SELECT value FROM meta WHERE key = 'sources_digest'").fetchone()
+    except sqlite3.Error:
+        row = None
+    if row and row[0] == digest:
+        return idx
+    idx.close()
+    return None
+
+
+def _build(store: IndexStore, digest: str, build: Callable[[MessageIndex], None]) -> Path:
     dest = store.destination(digest)
     dest.parent.mkdir(parents=True, exist_ok=True)
     # A private build folder beside the destination, so the final rename stays on one filesystem.
@@ -136,4 +147,32 @@ def open_index(
         for leftover in workdir.iterdir():
             leftover.unlink()
         workdir.rmdir()
-    return MessageIndex(dest), True
+    return dest
+
+
+class IndexRaceError(RuntimeError):
+    """Another writer kept replacing the index with a different generation."""
+
+
+def open_index(
+    store: IndexStore, digest: str, build: Callable[[MessageIndex], None], *, attempts: int = 3
+) -> tuple[MessageIndex, bool]:
+    """Open the index for `digest` from `store`, building it with `build` if the store has none.
+
+    Returns (index, built). `build` receives an empty index and fills it (e.g. `idx.add(bundles)`).
+    The returned index's own digest is checked on the returned connection; if another process
+    swapped in a different generation meanwhile, this rebuilds, and gives up after `attempts`.
+    """
+    built = False
+    for _ in range(attempts):
+        found = store.fetch(digest)
+        if found is not None:
+            idx = _open_verified(found, digest)
+            if idx is not None:
+                return idx, built
+        path = _build(store, digest, build)
+        built = True
+        idx = _open_verified(path, digest)
+        if idx is not None:
+            return idx, True
+    raise IndexRaceError(f"index for {digest[:12]} was replaced by another generation {attempts} times")

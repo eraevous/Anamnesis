@@ -11,7 +11,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from anamnesis.storage import recorded_digest
+import shutil
+
+from anamnesis.storage import IndexRaceError, recorded_digest
 from anamnesis import CacheStore, IndexStore, InRepoStore, bundles_from_export, open_index, sources_digest
 from tests.test_engine_core import conv
 
@@ -136,6 +138,48 @@ class BackendTests(unittest.TestCase):
             store.path.write_bytes(b"not a database")
             self.assertIsNone(store.fetch("a" * 64))
             self.assertEqual(store.path.read_bytes(), b"not a database")
+
+    def test_swap_after_fetch_is_caught_on_the_returned_connection(self):
+        # Codex review of d2f2011: a file replaced between fetch's check and the open was served.
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            src = write_export(root, "a.json", "quillfern")
+            store = InRepoStore(root / "index" / "messages.sqlite")
+            old = sources_digest(root, [src])
+            open_index(store, old, builder([src]))[0].close()
+            other_src = write_export(root, "b.json", "marrowlace")
+            other = InRepoStore(root / "other" / "messages.sqlite")
+            open_index(other, sources_digest(root, [other_src]), builder([other_src]))[0].close()
+            real_fetch = store.fetch
+            swapped = []
+
+            def racing_fetch(digest):
+                found = real_fetch(digest)
+                if found is not None and not swapped:
+                    shutil.copyfile(other.path, store.path)  # another writer lands after the check
+                    swapped.append(True)
+                return found
+
+            store.fetch = racing_fetch
+            idx, built = open_index(store, old, builder([src]))
+            with idx:
+                self.assertTrue(built)  # rebuilt instead of serving the replacement
+                self.assertEqual(len(idx.search("quillfern")), 1)
+                self.assertEqual(idx.search("marrowlace"), [])
+
+    def test_gives_up_when_every_generation_is_replaced(self):
+        import anamnesis.storage as st
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            src = write_export(root, "a.json", "quillfern")
+            store = InRepoStore(root / "messages.sqlite")
+            orig = st._open_verified
+            st._open_verified = lambda path, digest: None  # every open sees a foreign generation
+            try:
+                with self.assertRaises(IndexRaceError):
+                    open_index(store, sources_digest(root, [src]), builder([src]), attempts=2)
+            finally:
+                st._open_verified = orig
 
 
 class BenchSmokeTest(unittest.TestCase):
