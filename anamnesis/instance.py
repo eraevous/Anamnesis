@@ -49,6 +49,7 @@ SOURCE_KINDS = {"chatgpt-export"}
 # Where the index lives (item 3; the choice per instance is Zach's). Absent `index` means "cache".
 INDEX_BACKENDS = {"cache", "in-repo"}
 DEFAULT_IN_REPO_INDEX = "index/messages.sqlite"
+INDEX_FORBIDDEN_TOPS = {"sources", "claims", "rendered", "library", "runs", ".anamnesis"}
 VISIBILITIES = {"private", "shared", "public"}
 
 
@@ -141,6 +142,14 @@ def validate_manifest(manifest: Any) -> List[str]:
         p = index.get("path", DEFAULT_IN_REPO_INDEX)
         if not isinstance(p, str) or not p or Path(p).is_absolute() or ".." in Path(p).parts:
             problems.append("index.path must be a relative path inside the instance")
+        else:
+            # A build replaces the file at index.path, so it must never name instance data.
+            parts = Path(p).parts
+            listed = {s.get("path") for s in sources if isinstance(s, dict)}
+            if (Path(p).suffix != ".sqlite" or parts[0] in INDEX_FORBIDDEN_TOPS
+                    or Path(p).as_posix() in listed):
+                problems.append("index.path must be a .sqlite file outside sources/, claims/, rendered/, "
+                                "library/, runs/ and .anamnesis/, and not a listed source")
     return problems
 
 

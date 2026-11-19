@@ -107,7 +107,10 @@ def _open(root: Path, manifest: dict) -> Tuple[MessageIndex, bool, str]:
     if not files:
         raise InstanceError(f"{root} has no sources; add one with `anamnesis ingest {root} <export>`")
     digest = sources_digest(root, files)
-    idx, built = open_index(index_store(root, manifest), digest, lambda ix: ingest(ix, files))
+    store = index_store(root, manifest)
+    if isinstance(store, CacheStore):  # the cache file itself, not only its folders: a planted link
+        _refuse_redirects(root, [f"{CACHE_DIR}/{digest}.sqlite"])  # would be opened (and written) outside
+    idx, built = open_index(store, digest, lambda ix: ingest(ix, files))
     return idx, built, digest
 
 

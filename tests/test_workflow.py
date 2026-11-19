@@ -83,6 +83,36 @@ class WorkflowTests(unittest.TestCase):
             manifest["index"] = bad
             self.assertTrue(any("index." in p for p in validate_manifest(manifest)), bad)
 
+    def test_index_path_cannot_name_instance_data(self):
+        """Codex review of d57aec7 (P1): index.path = the manifest let a build replace it with SQLite."""
+        mpath = self.inst / "anamnesis.instance.json"
+        ingest_into_instance(self.inst, [F11])
+        source = load_manifest(self.inst)["sources"][0]["path"]
+        for bad in ("anamnesis.instance.json", source, "claims/ledger.jsonl", "library/x.sqlite",
+                    ".anamnesis/index/x.sqlite"):
+            manifest = json.loads(mpath.read_text(encoding="utf-8"))
+            manifest["index"] = {"backend": "in-repo", "path": bad}
+            self.assertTrue(validate_manifest(manifest), bad)
+            before = mpath.read_bytes()
+            mpath.write_text(json.dumps(manifest), encoding="utf-8")
+            with self.assertRaises(InstanceError):
+                ask_instance(self.inst, "zephyrine")
+            self.assertEqual(json.loads(mpath.read_text(encoding="utf-8"))["index"]["path"], bad)
+            mpath.write_bytes(before)
+        self.assertTrue((self.inst / source).read_bytes().startswith(b"["))
+
+    def test_symlinked_cache_file_is_refused(self):
+        """Codex review of d57aec7 (P2): a linked <digest>.sqlite was opened and written outside."""
+        ingest_into_instance(self.inst, [F11])
+        cached = next((self.inst / ".anamnesis" / "index").glob("*.sqlite"))
+        outside = self.tmp / "outside.sqlite"
+        outside.write_bytes(b"")
+        cached.unlink()
+        cached.symlink_to(outside)
+        with self.assertRaises(InstanceError):
+            ask_instance(self.inst, "zephyrine")
+        self.assertEqual(outside.read_bytes(), b"")
+
     def test_symlinked_import_folder_is_refused(self):
         outside = self.tmp / "outside"
         outside.mkdir()
