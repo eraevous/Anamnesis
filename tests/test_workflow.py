@@ -139,6 +139,36 @@ class WorkflowTests(unittest.TestCase):
             ask_instance(self.inst, "zephyrine")
         self.assertEqual(outside.read_bytes(), b"")
 
+    def test_malformed_index_and_source_entries_are_problems_not_crashes(self):
+        """Copilot review of 493be7d: a non-string backend or source path raised TypeError."""
+        manifest = load_manifest(self.inst)
+        manifest["index"] = {"backend": ["cache"]}
+        self.assertTrue(any("index.backend" in p for p in validate_manifest(manifest)))
+        manifest["index"] = {"backend": "in-repo"}
+        manifest["sources"] = [{"kind": "chatgpt-export", "path": []}]
+        self.assertTrue(any("sources[0].path" in p for p in validate_manifest(manifest)))
+
+    def test_corrupt_listed_source_is_an_instance_error(self):
+        """Copilot review of 493be7d: a listed source broken after import escaped as a traceback."""
+        ingest_into_instance(self.inst, [F11])
+        src = self.inst / load_manifest(self.inst)["sources"][0]["path"]
+        src.write_text("{not json", encoding="utf-8")
+        with self.assertRaisesRegex(InstanceError, "is not a readable ChatGPT export"):
+            ask_instance(self.inst, "zephyrine")
+
+    def test_renamed_copy_of_an_imported_export_is_not_listed_again(self):
+        """Copilot review of 493be7d: the same bytes under a new name were listed again, after newer ones."""
+        a, b = self.copy_as(F11, "a"), self.copy_as(F00, "b")
+        ingest_into_instance(self.inst, [a])
+        ingest_into_instance(self.inst, [b])
+        renamed = self.tmp / "old-export.json"
+        shutil.copy(a, renamed)
+        res = ingest_into_instance(self.inst, [renamed, renamed])
+        self.assertEqual(res.imported, [])
+        paths = [s["path"] for s in load_manifest(self.inst)["sources"]]
+        self.assertEqual(len(paths), 2)
+        self.assertEqual(res.already, [paths[0], paths[0]])
+
     def test_symlinked_import_folder_is_refused(self):
         outside = self.tmp / "outside"
         outside.mkdir()

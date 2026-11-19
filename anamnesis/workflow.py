@@ -119,6 +119,15 @@ def _privacy_notes(manifest: dict) -> List[str]:
             for k in ("sealed", "opaque") if privacy.get(k)]
 
 
+def _build_from(ix: MessageIndex, root: Path, files: List[Path]) -> None:
+    for f in files:  # one at a time, so a parse failure names its source
+        try:
+            ingest(ix, [f])
+        except (ValueError, KeyError, TypeError, AttributeError, zipfile.BadZipFile) as exc:
+            rel = f.relative_to(root).as_posix()
+            raise InstanceError(f"source {rel} is not a readable ChatGPT export: {exc}") from exc
+
+
 def _open(root: Path, manifest: dict) -> Tuple[MessageIndex, bool, str]:
     files = _source_files(root, manifest)
     if not files:
@@ -127,7 +136,7 @@ def _open(root: Path, manifest: dict) -> Tuple[MessageIndex, bool, str]:
     store = index_store(root, manifest)
     if isinstance(store, CacheStore):  # the cache file itself, not only its folders: a planted link
         _refuse_redirects(root, [f"{CACHE_DIR}/{digest}.sqlite"])  # would be opened (and written) outside
-    idx, built = open_index(store, digest, lambda ix: ingest(ix, files))
+    idx, built = open_index(store, digest, lambda ix: _build_from(ix, root, files))
     return idx, built, digest
 
 
@@ -136,6 +145,11 @@ def ingest_into_instance(path: str | Path, exports: Iterable[str | Path]) -> Ins
     manifest = load_manifest(root)
     out = InstanceIngest(notes=_privacy_notes(manifest))
     listed = {s["path"] for s in manifest["sources"]}
+    by_content = {}  # full SHA-256 -> path, for every listed source that exists as a file
+    for s in manifest["sources"]:
+        f = root / s["path"]
+        if f.is_file() and not f.is_symlink():
+            by_content.setdefault(_file_sha256(f), s["path"])
 
     plan: List[Tuple[Optional[Path], str]] = []
     for export in exports:
@@ -147,10 +161,12 @@ def ingest_into_instance(path: str | Path, exports: Iterable[str | Path]) -> Ins
         except (ValueError, KeyError, TypeError, AttributeError, zipfile.BadZipFile) as exc:
             raise InstanceError(f"{src}: not a readable ChatGPT export: {exc}") from exc
         # Named by content, so every export's usual name (conversations.json) never collides.
-        rel = f"{IMPORT_DIR}/{_file_sha256(src)[:16]}-{src.name}"
-        if any(rel == r for _, r in plan):
-            out.already.append(rel)  # the same export passed twice in one call
+        digest = _file_sha256(src)
+        if digest in by_content:  # same bytes already listed or planned, under any name: keep that entry,
+            out.already.append(by_content[digest])  # so an older copy never moves after a newer export
             continue
+        rel = f"{IMPORT_DIR}/{digest[:16]}-{src.name}"
+        by_content[digest] = rel
         target = root / rel
         if target.exists():
             if target.is_file() and _file_sha256(target) == _file_sha256(src):

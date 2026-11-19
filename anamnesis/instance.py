@@ -136,7 +136,8 @@ def validate_manifest(manifest: Any) -> List[str]:
         if not isinstance(privacy.get("profile_only"), bool):
             problems.append("privacy.profile_only must be true or false")
     index = manifest.get("index", {"backend": "cache"})  # optional; absent means the local cache
-    if not isinstance(index, dict) or index.get("backend") not in INDEX_BACKENDS:
+    if (not isinstance(index, dict) or not isinstance(index.get("backend"), str)
+            or index["backend"] not in INDEX_BACKENDS):
         problems.append(f"index.backend must be one of {sorted(INDEX_BACKENDS)}")
     elif index["backend"] == "in-repo":
         p = index.get("path", DEFAULT_IN_REPO_INDEX)
@@ -145,7 +146,7 @@ def validate_manifest(manifest: Any) -> List[str]:
         else:
             # A build replaces the file at index.path, so it must never name instance data.
             parts = Path(p).parts
-            listed = {s.get("path") for s in sources if isinstance(s, dict)}
+            listed = {s["path"] for s in sources if isinstance(s, dict) and isinstance(s.get("path"), str)}
             if (Path(p).suffix != ".sqlite" or parts[0] in INDEX_FORBIDDEN_TOPS
                     or Path(p).as_posix() in listed):
                 problems.append("index.path must be a .sqlite file outside sources/, claims/, rendered/, "
