@@ -196,6 +196,18 @@ class InitTests(unittest.TestCase):
             else:
                 os.environ["HOME"] = old
 
+    def test_symlinked_instance_root_is_refused(self):
+        """Codex security review of 597b609: a planted link at the named path moved every write."""
+        outside = self.tmp / "outside-repository"
+        outside.mkdir()
+        (outside / ".gitignore").write_text("theirs\n")
+        link = self.tmp / "selected-instance"
+        link.symlink_to(outside)
+        before = tree_digest(outside)
+        with self.assertRaises(InstanceError):
+            init_instance(link)
+        self.assertEqual(tree_digest(outside), before)
+
     def test_path_that_is_a_file_is_refused(self):
         f = self.tmp / "afile"
         f.write_text("x")

@@ -22,6 +22,7 @@ Reviewer guide:
 from __future__ import annotations
 
 import json
+import os
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -155,6 +156,8 @@ def init_instance(path: Path, name: str | None = None, demo: bool = False) -> In
     in a new manifest, so the engine can be tried with no real data. Demo needs a fresh manifest.
     """
     root = Path(path).expanduser()
+    if root.is_symlink():  # a planted link at the named path would move the whole instance elsewhere
+        raise InstanceError(f"{root} is a symlink; pass the real folder instead")
     if root.exists() and not root.is_dir():
         raise InstanceError(f"{root} exists and is not a directory")
     if name is not None and (not isinstance(name, str) or not name.strip()):
@@ -201,7 +204,9 @@ def init_instance(path: Path, name: str | None = None, demo: bool = False) -> In
             raise InstanceError(f"{gi}: cannot read it as UTF-8 text: {exc}") from exc
         missing = [line for line in GITIGNORE_LINES[1:] if line not in current]
         if missing:
-            with gi.open("a", encoding="utf-8") as fh:
+            # no-follow at write time too, in case the file was swapped for a link after the preflight
+            fd = os.open(gi, os.O_WRONLY | os.O_APPEND | getattr(os, "O_NOFOLLOW", 0))
+            with os.fdopen(fd, "a", encoding="utf-8") as fh:
                 prefix = "" if not current or current[-1] == "" else "\n"
                 fh.write(prefix + "\n".join([GITIGNORE_LINES[0], *missing]) + "\n")
             report.created.append(".gitignore (appended " + ", ".join(missing) + ")")
