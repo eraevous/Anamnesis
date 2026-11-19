@@ -1,0 +1,48 @@
+{
+  "python": "3.13.18",
+  "sqlite": "3.53.1",
+  "runs": [
+    {
+      "conversations": 500,
+      "messages_per_conversation": 20,
+      "units": 10000,
+      "source_bytes": 9232241,
+      "measured": {
+        "parse_s": 0.194,
+        "fts_build_s": 0.184,
+        "rebuild_from_sources_s": 0.379,
+        "index_bytes": 12578816,
+        "index_zlib_bytes": 4775023,
+        "cold_query_ms_median": 37.48,
+        "warm_query_ms_median": 0.785
+      },
+      "model": {
+        "vectors_bytes_dim_384": 15360000,
+        "vectors_bytes_dim_1536": 61440000,
+        "hosted_fetch_s_50mbit": 1.06,
+        "hosted_fetch_s_200mbit": 0.49
+      }
+    },
+    {
+      "conversations": 5000,
+      "messages_per_conversation": 20,
+      "units": 100000,
+      "source_bytes": 92311899,
+      "measured": {
+        "parse_s": 2.779,
+        "fts_build_s": 2.535,
+        "rebuild_from_sources_s": 5.314,
+        "index_bytes": 126246912,
+        "index_zlib_bytes": 50127684,
+        "cold_query_ms_median": 42.99,
+        "warm_query_ms_median": 6.28
+      },
+      "model": {
+        "vectors_bytes_dim_384": 153600000,
+        "vectors_bytes_dim_1536": 614400000,
+        "hosted_fetch_s_50mbit": 8.32,
+        "hosted_fetch_s_200mbit": 2.31
+      }
+    }
+  ]
+}

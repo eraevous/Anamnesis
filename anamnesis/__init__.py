@@ -19,6 +19,7 @@ from .cells import Cell, cells_for_bundle
 from .index import Hit, MessageIndex, fts5_available
 from .embedder import Embedder, HashingEmbedder
 from .answer import Answer, Citation, IngestReport, ask, ingest
+from .storage import CacheStore, IndexStore, InRepoStore, open_index, sources_digest
 from .instance import INSTANCE_LAYOUT, INSTANCE_SCHEMA_VERSION, InstanceError, init_instance, load_manifest, validate_manifest
 
 __all__ = [
@@ -26,5 +27,6 @@ __all__ = [
     "MessageUnitKind", "bundles_from_export", "conversation_key", "load_conversations", "normalize_key",
     "Cell", "cells_for_bundle", "Hit", "MessageIndex", "fts5_available", "Embedder", "HashingEmbedder",
     "Answer", "Citation", "IngestReport", "ask", "ingest",
+    "CacheStore", "IndexStore", "InRepoStore", "open_index", "sources_digest",
     "INSTANCE_LAYOUT", "INSTANCE_SCHEMA_VERSION", "InstanceError", "init_instance", "load_manifest", "validate_manifest",
 ]
