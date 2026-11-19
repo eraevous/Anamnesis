@@ -133,6 +133,16 @@ class InitTests(unittest.TestCase):
             init_instance(inst)
         self.assertEqual(sorted(p.name for p in inst.iterdir()), ["claims"])
 
+    def test_blank_name_is_refused_before_any_write(self):
+        """Codex review of 9d623a4: a whitespace --name hit an assert after demo files were copied."""
+        inst = self.tmp / "memory"
+        for blank in ("   ", ""):
+            with self.assertRaises(InstanceError):
+                init_instance(inst, name=blank, demo=True)
+            self.assertFalse(inst.exists())
+        init_instance(inst, name="ok", demo=True)  # a retry with a good name works
+        self.assertEqual(load_manifest(inst)["name"], "ok")
+
     def test_path_that_is_a_file_is_refused(self):
         f = self.tmp / "afile"
         f.write_text("x")

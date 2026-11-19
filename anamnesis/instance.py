@@ -157,6 +157,8 @@ def init_instance(path: Path, name: str | None = None, demo: bool = False) -> In
     root = Path(path).expanduser()
     if root.exists() and not root.is_dir():
         raise InstanceError(f"{root} exists and is not a directory")
+    if name is not None and (not isinstance(name, str) or not name.strip()):
+        raise InstanceError("name must be a non-empty string")  # checked before any write
     report = InitReport(path=root)
     manifest_path = root / MANIFEST_NAME
     existing_manifest = manifest_path.exists()
@@ -217,7 +219,8 @@ def init_instance(path: Path, name: str | None = None, demo: bool = False) -> In
                 manifest["sources"].append({"kind": "chatgpt-export", "path": rel, "synthetic": True})
                 report.demo_sources.append(rel)
         problems = validate_manifest(manifest)
-        assert not problems, problems  # the defaults must always validate
+        if problems:  # unreachable while name is checked above; kept so a bad manifest is never written
+            raise InstanceError("; ".join(problems))
         _create_if_missing(manifest_path, json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", report)
     else:
         report.kept.append(MANIFEST_NAME)
