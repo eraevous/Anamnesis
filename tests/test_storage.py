@@ -30,18 +30,65 @@ def builder(paths):
 
 
 class DigestTests(unittest.TestCase):
-    def test_digest_tracks_content_and_paths_not_order(self):
+    def test_digest_tracks_content_paths_and_order(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             a, b = write_export(root, "a.json", "quillfern"), write_export(root, "b.json", "marrowlace")
             first = sources_digest(root, [a, b])
-            self.assertEqual(first, sources_digest(root, [b, a]))
+            self.assertEqual(first, sources_digest(root, [a, b]))
             b.write_text(b.read_text().replace("marrowlace", "marrowlacf"))
             self.assertNotEqual(first, sources_digest(root, [a, b]))
             before_rename = sources_digest(root, [a, b])
             renamed = root / "sources" / "c.json"
             b.rename(renamed)
             self.assertNotEqual(before_rename, sources_digest(root, [a, renamed]))
+
+    def test_order_changes_the_key_when_it_changes_the_index(self):
+        # Copilot review of b7d35f1: two exports holding different versions of one conversation
+        # index different text for [a, b] and [b, a]; they must not share a cache entry.
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            a, b = write_export(root, "a.json", "quillfern"), write_export(root, "b.json", "marrowlace")
+            b.write_text(b.read_text().replace("c-marrowlace", "c-quillfern"))  # same conversation id
+            store = CacheStore(root / "cache")
+            for order, word in (([a, b], "marrowlace"), ([b, a], "quillfern")):
+                idx, _ = open_index(store, sources_digest(root, order), builder(order))
+                with idx:
+                    self.assertEqual(len(idx.search(word)), 1, order)
+
+    def test_large_source_is_streamed(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            big = root / "big.json"
+            big.write_bytes(b"x" * (3 * (1 << 20) + 5))
+            reads = []
+            real_open = open
+
+            def spy_open(path, mode="r", *args, **kw):
+                fh = real_open(path, mode, *args, **kw)
+                real_read = fh.read
+
+                class Wrapped:
+                    def read(self, n=-1):
+                        reads.append(n)
+                        return real_read(n)
+
+                    def __enter__(self):
+                        return self
+
+                    def __exit__(self, *exc):
+                        fh.close()
+
+                return Wrapped()
+
+            import anamnesis.storage as st
+            st.open = spy_open
+            try:
+                digest = sources_digest(root, [big])
+            finally:
+                del st.open
+            self.assertTrue(reads and all(0 < n <= 1 << 20 for n in reads))
+            self.assertEqual(digest, sources_digest(root, [big]))
 
     def test_path_outside_root_is_refused(self):
         with tempfile.TemporaryDirectory() as d, tempfile.TemporaryDirectory() as other:

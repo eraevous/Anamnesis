@@ -4,7 +4,7 @@ Reviewer guide:
 - The index is a cache derived from sources (index.py says so). A backend only decides where a
   built index file is kept and how it is found again; it never parses or indexes anything itself.
 - Every built index is keyed by `sources_digest`: a SHA-256 over the source files' relative paths
-  and bytes, plus the index schema version. Changing any source, or the schema, changes the key,
+  and bytes, in build order, plus the index schema version. Changing any source, or the schema, changes the key,
   so a stale index is never served; it is rebuilt.
 - `open_index` builds into a temporary file in the destination folder and renames it into place,
   so a reader never sees a half-built index and a crash leaves the old one intact.
@@ -32,13 +32,21 @@ from .index import INDEX_SCHEMA_VERSION, MessageIndex
 
 
 def sources_digest(root: str | Path, files: Iterable[str | Path]) -> str:
-    """SHA-256 over the schema version and each file's path (relative to `root`) and bytes."""
+    """SHA-256 over the schema version and, in the order given, each file's relative path and bytes.
+
+    Order is part of the key: a later source replaces an earlier one's units with the same id, so
+    [a, b] and [b, a] can index different text. Build in the same order you hash. Each file is
+    streamed into its own SHA-256, so the memory used doesn't grow with the size of an export.
+    """
     root = Path(root)
     h = hashlib.sha256(INDEX_SCHEMA_VERSION.encode("utf-8") + b"\0")
-    rels = sorted({Path(f).resolve().relative_to(root.resolve()).as_posix() for f in files})
-    for rel in rels:
-        data = (root / rel).read_bytes()
-        h.update(rel.encode("utf-8") + b"\0" + str(len(data)).encode("ascii") + b"\0" + data)
+    for f in files:
+        rel = Path(f).resolve().relative_to(root.resolve()).as_posix()
+        fh = hashlib.sha256()
+        with open(root / rel, "rb") as src:
+            for chunk in iter(lambda: src.read(1 << 20), b""):
+                fh.update(chunk)
+        h.update(rel.encode("utf-8") + b"\0" + fh.digest())
     return h.hexdigest()
 
 
