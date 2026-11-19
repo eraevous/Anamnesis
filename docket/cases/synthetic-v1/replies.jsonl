@@ -1,0 +1,10 @@
+{"author": "kate:api", "created_at": "2026-11-17T13:00:00Z", "reply_id": "RP-01", "request_id": "RQ-01", "text": "The fixture plan holds. Keep F-11 off the active path."}
+{"author": "kate:api", "created_at": "2026-11-17T13:00:00Z", "reply_id": "RP-02", "request_id": "RQ-02", "text": "Two wakes is enough for a first window."}
+{"author": "kate:api", "created_at": "2026-11-17T13:00:00Z", "reply_id": "RP-03", "request_id": "RQ-03", "text": "The benchmark may need a second island before the port."}
+{"author": "kate:api", "created_at": "2026-11-17T13:00:00Z", "reply_id": "RP-04", "request_id": "RQ-04", "text": "Ship the comparator first."}
+{"author": "kate:api", "created_at": "2026-11-17T13:05:00Z", "reply_id": "RP-04", "request_id": "RQ-04", "text": "Ship the comparator first."}
+{"author": "kate:api", "created_at": "2026-11-17T20:00:00Z", "reply_id": "RP-05", "request_id": "RQ-05", "text": "Late, but here."}
+{"author": "kate:api", "body": {"path": "bodies/RP-06.txt"}, "created_at": "2026-11-17T13:00:00Z", "reply_id": "RP-06", "request_id": "RQ-06"}
+{"author": "kate:api", "body": {"path": "bodies/RP-07.txt", "sha256": "8ca0f9207e1814474248105b1b97accebc7b1e702e8babe4a680eb95048679d7"}, "created_at": "2026-11-17T13:00:00Z", "reply_id": "RP-07", "request_id": "RQ-07"}
+{"author": "kate:api", "created_at": "2026-11-17T13:00:00Z", "reply_id": "RP-08", "request_id": "RQ-08", "text": "Original answer text, written once and never filed."}
+{"author": "kate:api", "created_at": "2026-11-17T13:00:00Z", "reply_id": "RP-09", "request_id": "RQ-09", "text": "Original answer text, written once and never filed."}
