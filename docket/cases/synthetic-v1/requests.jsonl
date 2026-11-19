@@ -1,0 +1,12 @@
+{"asked_at": "2026-11-17T12:00:00Z", "case": "clean control: filed unchanged", "due_by": "2026-11-17T18:00:00Z", "id": "RQ-01", "recipient": "kate", "route": "api"}
+{"asked_at": "2026-11-17T12:00:00Z", "case": "reply came back, never filed", "due_by": "2026-11-17T18:00:00Z", "id": "RQ-02", "recipient": "kate", "route": "api"}
+{"asked_at": "2026-11-17T12:00:00Z", "case": "filing strengthens the reply's claim", "due_by": "2026-11-17T18:00:00Z", "id": "RQ-03", "recipient": "kate", "route": "api"}
+{"asked_at": "2026-11-17T12:00:00Z", "case": "reply replayed and filed twice", "due_by": "2026-11-17T18:00:00Z", "id": "RQ-04", "recipient": "kate", "route": "api"}
+{"asked_at": "2026-11-17T12:00:00Z", "case": "reply arrives after due_by, filed unchanged", "due_by": "2026-11-17T18:00:00Z", "id": "RQ-05", "recipient": "kate", "route": "api"}
+{"asked_at": "2026-11-17T12:00:00Z", "case": "reply body unreadable (digest does not match the manifest)", "due_by": "2026-11-17T18:00:00Z", "id": "RQ-06", "recipient": "kate", "route": "api"}
+{"asked_at": "2026-11-17T12:00:00Z", "case": "clean control: CRLF and trailing spaces only (decoy, must match)", "due_by": "2026-11-17T18:00:00Z", "id": "RQ-07", "recipient": "kate", "route": "api"}
+{"asked_at": "2026-11-17T12:00:00Z", "case": "filing lost; a declared reconstruction filed later (Cockpit R2 shape)", "due_by": "2026-11-17T18:00:00Z", "id": "RQ-08", "recipient": "kate", "route": "api"}
+{"asked_at": "2026-11-17T12:00:00Z", "case": "filing lost; later filing claims 'original' but is not the lost bytes", "due_by": "2026-11-17T18:00:00Z", "id": "RQ-09", "recipient": "kate", "route": "api"}
+{"asked_at": "2026-11-17T12:00:00Z", "case": "route with no unattended consumer", "due_by": "2026-11-17T18:00:00Z", "id": "RQ-10", "recipient": "abigail", "route": "none"}
+{"asked_at": "2026-11-17T12:00:00Z", "case": "nothing came back, past due", "due_by": "2026-11-17T18:00:00Z", "id": "RQ-11", "recipient": "kate", "route": "api"}
+{"asked_at": "2026-11-17T12:00:00Z", "case": "nothing came back, not yet due (censored)", "due_by": "2026-11-19T00:00:00Z", "id": "RQ-12", "recipient": "kate", "route": "api"}
