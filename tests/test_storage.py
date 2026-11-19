@@ -11,6 +11,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from anamnesis.storage import recorded_digest
 from anamnesis import CacheStore, IndexStore, InRepoStore, bundles_from_export, open_index, sources_digest
 from tests.test_engine_core import conv
 
@@ -109,14 +110,32 @@ class BackendTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 open_index(store, "0" * 64, boom)
             self.assertEqual(store.path.read_bytes(), before)
-            self.assertEqual(sorted(p.name for p in store.path.parent.iterdir()),
-                             ["messages.sqlite", "messages.sqlite.digest"])
+            self.assertEqual([p.name for p in store.path.parent.iterdir()], ["messages.sqlite"])
 
-    def test_in_repo_store_ignores_unreadable_sidecar(self):
+    def test_in_repo_digest_lives_in_the_index_file(self):
+        # Codex review of 59de6f7: a sidecar could name the old sources while the file held the new.
+        # The digest is now inside the file, so swapping the file swaps the digest with it.
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            src = write_export(root, "a.json", "quillfern")
+            store = InRepoStore(root / "index" / "messages.sqlite")
+            old = sources_digest(root, [src])
+            open_index(store, old, builder([src]))[0].close()
+            other = InRepoStore(root / "elsewhere" / "messages.sqlite")
+            src.write_text(src.read_text().replace("quillfern", "marrowlace"))
+            new = sources_digest(root, [src])
+            open_index(other, new, builder([src]))[0].close()
+            other.path.replace(store.path)  # a newer generation lands, by any route
+            self.assertIsNone(store.fetch(old))
+            self.assertEqual(store.fetch(new), store.path)
+            self.assertEqual(recorded_digest(store.path), new)
+
+    def test_unreadable_or_foreign_file_is_not_fetched(self):
         with tempfile.TemporaryDirectory() as d:
             store = InRepoStore(Path(d) / "messages.sqlite")
-            store.sidecar.write_bytes(b"\xff\xfe")
+            store.path.write_bytes(b"not a database")
             self.assertIsNone(store.fetch("a" * 64))
+            self.assertEqual(store.path.read_bytes(), b"not a database")
 
 
 class BenchSmokeTest(unittest.TestCase):

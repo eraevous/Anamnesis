@@ -10,9 +10,11 @@ Reviewer guide:
   so a reader never sees a half-built index and a crash leaves the old one intact.
 - Two backends ship, both local and standard library only:
   - `CacheStore`: `<cache_dir>/<digest>.sqlite`, outside git; a fresh clone rebuilds on first use.
-  - `InRepoStore`: one tracked file (default `<instance>/index/messages.sqlite`) plus a sidecar
-    `<file>.digest`; a fresh clone gets it with the repository (plain git or LFS).
-- Hosted storage (S3 or similar) fits the same two methods (`fetch`, `publish`) but is not built
+  - `InRepoStore`: one tracked file (default `<instance>/index/messages.sqlite`); a fresh clone
+    gets it with the repository (plain git or LFS).
+- The digest is written into the index's own `meta` table before the rename, so a file and the
+  digest that names it are published as one generation: no sidecar can disagree with it.
+- Hosted storage (S3 or similar) fits the same two methods (`fetch`, `destination`) but is not built
   here: creating hosted storage is outside the handoff's grant. docs/research/index-storage.md
   measures the local options and models the hosted one; the choice is Zach's.
 """
@@ -21,6 +23,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import sqlite3
 import tempfile
 from pathlib import Path
 from typing import Callable, Iterable, Optional, Protocol, runtime_checkable
@@ -49,9 +52,6 @@ class IndexStore(Protocol):
     def destination(self, digest: str) -> Path:
         """Where a freshly built index for `digest` should be renamed to."""
 
-    def publish(self, digest: str, path: Path) -> None:
-        """Record that `path` (already at `destination(digest)`) holds the index for `digest`."""
-
 
 class CacheStore:
     """A local cache outside git, one file per digest. Old digests are left for `prune`."""
@@ -68,9 +68,6 @@ class CacheStore:
         path = self.destination(digest)
         return path if path.is_file() else None
 
-    def publish(self, digest: str, path: Path) -> None:
-        pass  # the file name is the record
-
     def prune(self, keep: str) -> int:
         """Delete cached indexes for every digest but `keep`. Returns how many were removed."""
         removed = 0
@@ -82,37 +79,31 @@ class CacheStore:
 
 
 class InRepoStore:
-    """One tracked index file and a `.digest` sidecar naming the sources it was built from."""
+    """One tracked index file; the sources digest it was built from is in its own `meta` table."""
 
     name = "in-repo"
 
     def __init__(self, path: str | Path) -> None:
         self.path = Path(path).expanduser()
-        self.sidecar = self.path.with_name(self.path.name + ".digest")
 
     def destination(self, digest: str) -> Path:
         return self.path
 
     def fetch(self, digest: str) -> Optional[Path]:
-        try:
-            recorded = self.sidecar.read_text(encoding="ascii").strip()
-        except (OSError, UnicodeError):
-            return None
-        return self.path if recorded == digest and self.path.is_file() else None
-
-    def publish(self, digest: str, path: Path) -> None:
-        _atomic_write(self.sidecar, (digest + "\n").encode("ascii"))
+        return self.path if self.path.is_file() and recorded_digest(self.path) == digest else None
 
 
-def _atomic_write(path: Path, data: bytes) -> None:
-    fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+def recorded_digest(path: Path) -> Optional[str]:
+    """The sources digest stored in an index file, or None if it has none or can't be read."""
     try:
-        with os.fdopen(fd, "wb") as fh:
-            fh.write(data)
-        os.replace(tmp, path)
-    except BaseException:
-        Path(tmp).unlink(missing_ok=True)
-        raise
+        con = sqlite3.connect(f"{Path(path).resolve().as_uri()}?mode=ro", uri=True)
+        try:
+            row = con.execute("SELECT value FROM meta WHERE key = 'sources_digest'").fetchone()
+        finally:
+            con.close()
+    except sqlite3.Error:
+        return None
+    return row[0] if row else None
 
 
 def open_index(
@@ -134,6 +125,10 @@ def open_index(
         idx = MessageIndex(tmp)
         try:
             build(idx)
+            with idx.con:  # the digest travels inside the file it names
+                idx.con.execute(
+                    "INSERT OR REPLACE INTO meta(key, value) VALUES ('sources_digest', ?)", (digest,)
+                )
         finally:
             idx.close()
         os.replace(tmp, dest)
@@ -141,5 +136,4 @@ def open_index(
         for leftover in workdir.iterdir():
             leftover.unlink()
         workdir.rmdir()
-    store.publish(digest, dest)
     return MessageIndex(dest), True

@@ -50,6 +50,6 @@ Caveats: random invented words compress worse than real prose, so real indexes w
 
 ## What is not here
 
-- No hosted backend code and no AWS use: creating hosted storage is outside the grant. The interface (`fetch`, `destination`, `publish`) is what one would implement.
+- No hosted backend code and no AWS use: creating hosted storage is outside the grant. The interface (`fetch`, `destination`) is what one would implement.
 - No vector store yet: the vectors figures are arithmetic, not measurements. Building the content-addressed vector store belongs with item 4 once the choice above is made.
 - No real data was read. CogScaff was not touched.
