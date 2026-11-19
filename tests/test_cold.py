@@ -56,7 +56,9 @@ class ColdTest(unittest.TestCase):
             venv = self.tmp / "venv"
             subprocess.run([sys.executable, "-m", "venv", str(venv)], check=True, env=self.env)
             pip_env = dict(os.environ, HOME=str(self.home))  # proxy settings for the install only
-            subprocess.run([str(venv / "bin" / "pip"), "install", "-q", str(ROOT)], check=True, env=pip_env)
+            src = self.tmp / "src"  # install from a copy: a build must not leave files in the checkout
+            shutil.copytree(ROOT, src, ignore=shutil.ignore_patterns(".git", "build", "*.egg-info", "__pycache__"))
+            subprocess.run([str(venv / "bin" / "pip"), "install", "-q", str(src)], check=True, env=pip_env)
             self.cmd, self.cwd = [str(venv / "bin" / "anamnesis")], self.home
         else:
             stage = self.tmp / "stage"
