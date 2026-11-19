@@ -20,11 +20,9 @@ Reviewer guide:
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import shutil
-import sqlite3
 import tempfile
 import uuid
 import zipfile
@@ -38,12 +36,14 @@ from .index import MessageIndex
 from .instance import (
     DEFAULT_IN_REPO_INDEX, MANIFEST_NAME, InstanceError, _refuse_redirects, load_manifest, validate_manifest,
 )
-from .storage import CacheStore, IndexStore, InRepoStore, open_index, sources_digest
+from .storage import CacheStore, IndexStore, InRepoStore, file_sha256, open_index, read_meta, sources_digest
 from .units import bundles_from_export
 
 IMPORT_DIR = "sources/imported"
 CACHE_DIR = ".anamnesis/index"
 RUN_SCHEMA_VERSION = "anamnesis.run.v1"
+# What a malformed export raises while it is parsed; each is reported as "not a readable ChatGPT export".
+EXPORT_ERRORS = (ValueError, KeyError, TypeError, AttributeError, zipfile.BadZipFile)
 
 
 @dataclass
@@ -56,14 +56,6 @@ class InstanceIngest:
     digest: str = ""
     built: bool = False
     notes: List[str] = field(default_factory=list)
-
-
-def _file_sha256(path: Path) -> str:
-    h = hashlib.sha256()
-    with path.open("rb") as fh:
-        for chunk in iter(lambda: fh.read(1 << 20), b""):
-            h.update(chunk)
-    return h.hexdigest()
 
 
 def _root(path: str | Path) -> Path:
@@ -88,15 +80,8 @@ def index_store(root: Path, manifest: dict) -> IndexStore:
 
 def _is_anamnesis_index(path: Path) -> bool:
     """True only for an SQLite file whose meta table names an anamnesis index schema (read-only check)."""
-    try:
-        con = sqlite3.connect(f"{path.resolve().as_uri()}?mode=ro", uri=True)
-        try:
-            row = con.execute("SELECT value FROM meta WHERE key = 'schema_version'").fetchone()
-        finally:
-            con.close()
-    except sqlite3.Error:
-        return False
-    return bool(row) and isinstance(row[0], str) and row[0].startswith("anamnesis.")
+    schema = read_meta(path, "schema_version")
+    return isinstance(schema, str) and schema.startswith("anamnesis.")
 
 
 def _source_files(root: Path, manifest: dict) -> List[Path]:
@@ -123,7 +108,7 @@ def _build_from(ix: MessageIndex, root: Path, files: List[Path]) -> None:
     for f in files:  # one at a time, so a parse failure names its source
         try:
             ingest(ix, [f])
-        except (ValueError, KeyError, TypeError, AttributeError, zipfile.BadZipFile) as exc:
+        except EXPORT_ERRORS as exc:
             rel = f.relative_to(root).as_posix()
             raise InstanceError(f"source {rel} is not a readable ChatGPT export: {exc}") from exc
 
@@ -149,7 +134,7 @@ def ingest_into_instance(path: str | Path, exports: Iterable[str | Path]) -> Ins
     for s in manifest["sources"]:
         f = root / s["path"]
         if f.is_file() and not f.is_symlink():
-            by_content.setdefault(_file_sha256(f), s["path"])
+            by_content.setdefault(file_sha256(f), s["path"])
 
     plan: List[Tuple[Optional[Path], str]] = []
     for export in exports:
@@ -158,10 +143,10 @@ def ingest_into_instance(path: str | Path, exports: Iterable[str | Path]) -> Ins
             raise InstanceError(f"{src}: pass an export file (conversations.json or the export ZIP)")
         try:  # parse first: a bad export is refused before anything is written
             bundles_from_export(src)
-        except (ValueError, KeyError, TypeError, AttributeError, zipfile.BadZipFile) as exc:
+        except EXPORT_ERRORS as exc:
             raise InstanceError(f"{src}: not a readable ChatGPT export: {exc}") from exc
         # Named by content, so every export's usual name (conversations.json) never collides.
-        digest = _file_sha256(src)
+        digest = file_sha256(src)
         if digest in by_content:  # same bytes already listed or planned, under any name: keep that entry,
             out.already.append(by_content[digest])  # so an older copy never moves after a newer export
             continue
@@ -169,7 +154,7 @@ def ingest_into_instance(path: str | Path, exports: Iterable[str | Path]) -> Ins
         by_content[digest] = rel
         target = root / rel
         if target.exists():
-            if target.is_file() and _file_sha256(target) == _file_sha256(src):
+            if target.is_file() and file_sha256(target) == digest:
                 out.already.append(rel)
                 if rel not in listed:
                     plan.append((None, rel))  # present but unlisted: list it

@@ -31,6 +31,28 @@ from typing import Callable, Iterable, Optional, Protocol, runtime_checkable
 from .index import INDEX_SCHEMA_VERSION, MessageIndex
 
 
+def file_sha256(path: str | Path) -> str:
+    """Hex SHA-256 of one file, streamed in 1 MiB chunks so memory doesn't grow with the file."""
+    h = hashlib.sha256()
+    with open(path, "rb") as src:
+        for chunk in iter(lambda: src.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def read_meta(path: str | Path, key: str) -> Optional[str]:
+    """One value from an index file's `meta` table, opened read-only; None if absent or unreadable."""
+    try:
+        con = sqlite3.connect(f"{Path(path).resolve().as_uri()}?mode=ro", uri=True)
+        try:
+            row = con.execute("SELECT value FROM meta WHERE key = ?", (key,)).fetchone()
+        finally:
+            con.close()
+    except sqlite3.Error:
+        return None
+    return row[0] if row else None
+
+
 def sources_digest(root: str | Path, files: Iterable[str | Path]) -> str:
     """SHA-256 over the schema version and, in the order given, each file's relative path and bytes.
 
@@ -42,11 +64,7 @@ def sources_digest(root: str | Path, files: Iterable[str | Path]) -> str:
     h = hashlib.sha256(INDEX_SCHEMA_VERSION.encode("utf-8") + b"\0")
     for f in files:
         rel = Path(f).resolve().relative_to(root.resolve()).as_posix()
-        fh = hashlib.sha256()
-        with open(root / rel, "rb") as src:
-            for chunk in iter(lambda: src.read(1 << 20), b""):
-                fh.update(chunk)
-        h.update(rel.encode("utf-8") + b"\0" + fh.digest())
+        h.update(rel.encode("utf-8") + b"\0" + bytes.fromhex(file_sha256(root / rel)))
     return h.hexdigest()
 
 
@@ -103,15 +121,7 @@ class InRepoStore:
 
 def recorded_digest(path: Path) -> Optional[str]:
     """The sources digest stored in an index file, or None if it has none or can't be read."""
-    try:
-        con = sqlite3.connect(f"{Path(path).resolve().as_uri()}?mode=ro", uri=True)
-        try:
-            row = con.execute("SELECT value FROM meta WHERE key = 'sources_digest'").fetchone()
-        finally:
-            con.close()
-    except sqlite3.Error:
-        return None
-    return row[0] if row else None
+    return read_meta(path, "sources_digest")
 
 
 def _open_verified(path: Path, digest: str) -> Optional[MessageIndex]:
