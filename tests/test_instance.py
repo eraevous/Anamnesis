@@ -106,6 +106,33 @@ class InitTests(unittest.TestCase):
             init_instance(inst, demo=True)
         self.assertEqual(tree_digest(inst), before)
 
+    def test_symlinks_cannot_redirect_writes_outside(self):
+        """Codex review of 4c582b2: a symlinked claims/ or .gitignore sent writes to a sibling."""
+        outside = self.tmp / "outside"
+        outside.mkdir()
+        (outside / "ignore").write_text("theirs\n")
+        for link, target in (("claims", outside), (".gitignore", outside / "ignore"),
+                             ("rendered", outside), ("dangling", None)):
+            inst = self.tmp / f"inst-{link.strip('.')}"
+            inst.mkdir()
+            if target is None:
+                (inst / "runs").symlink_to(self.tmp / "nowhere")
+            else:
+                (inst / link).symlink_to(target)
+            before = tree_digest(outside)
+            with self.assertRaises(InstanceError):
+                init_instance(inst)
+            self.assertEqual(tree_digest(outside), before)
+            self.assertFalse((inst / MANIFEST_NAME).exists())
+
+    def test_layout_path_that_is_a_file_is_refused(self):
+        inst = self.tmp / "memory"
+        inst.mkdir()
+        (inst / "claims").write_text("not a folder")
+        with self.assertRaises(InstanceError):
+            init_instance(inst)
+        self.assertEqual(sorted(p.name for p in inst.iterdir()), ["claims"])
+
     def test_path_that_is_a_file_is_refused(self):
         f = self.tmp / "afile"
         f.write_text("x")
@@ -153,6 +180,15 @@ class ManifestTests(unittest.TestCase):
                        "privacy.visibility", "shelf ids must be unique"):
             self.assertIn(needle, joined)
 
+    def test_non_string_enums_are_problems_not_crashes(self):
+        """Codex review of 4c582b2: a list or object kind/visibility raised TypeError."""
+        m = default_manifest("m")
+        m["sources"] = [{"kind": ["chatgpt-export"], "path": "sources/a.json"}, {"kind": {}, "path": "sources/b.json"}]
+        m["privacy"]["visibility"] = ["private"]
+        joined = " | ".join(validate_manifest(m))
+        for needle in ("sources[0].kind", "sources[1].kind", "privacy.visibility"):
+            self.assertIn(needle, joined)
+
     def test_not_an_object(self):
         self.assertEqual(validate_manifest([]), ["manifest is not a JSON object"])
 
@@ -188,6 +224,16 @@ class CliTests(unittest.TestCase):
             r = self.run_cli("check", tmp)
             self.assertEqual(r.returncode, 1)
             self.assertIn("not an anamnesis instance", r.stderr)
+            self.assertNotIn("Traceback", r.stderr)
+
+    def test_check_reports_a_malformed_manifest_without_a_traceback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            m = default_manifest("m")
+            m["privacy"]["visibility"] = {"x": 1}
+            (Path(tmp) / MANIFEST_NAME).write_text(json.dumps(m))
+            r = self.run_cli("check", tmp)
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("privacy.visibility", r.stderr)
             self.assertNotIn("Traceback", r.stderr)
 
     def test_usage_error(self):

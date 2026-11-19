@@ -96,7 +96,7 @@ def validate_manifest(manifest: Any) -> List[str]:
         if not isinstance(src, dict):
             problems.append(f"sources[{i}] is not an object")
             continue
-        if src.get("kind") not in SOURCE_KINDS:
+        if not isinstance(src.get("kind"), str) or src["kind"] not in SOURCE_KINDS:
             problems.append(f"sources[{i}].kind must be one of {sorted(SOURCE_KINDS)}")
         p = src.get("path")
         if not isinstance(p, str) or not p:
@@ -123,7 +123,7 @@ def validate_manifest(manifest: Any) -> List[str]:
     if not isinstance(privacy, dict):
         problems.append("privacy must be an object")
     else:
-        if privacy.get("visibility") not in VISIBILITIES:
+        if not isinstance(privacy.get("visibility"), str) or privacy["visibility"] not in VISIBILITIES:
             problems.append(f"privacy.visibility must be one of {sorted(VISIBILITIES)}")
         for key in ("sealed", "opaque"):
             if not isinstance(privacy.get(key), list):
@@ -173,6 +173,11 @@ def init_instance(path: Path, name: str | None = None, demo: bool = False) -> In
             if target.exists():
                 raise InstanceError(f"{target} already exists; refusing to overwrite it")
 
+    write_paths = [*INSTANCE_LAYOUT, "claims/ledger.jsonl", ".gitignore", MANIFEST_NAME]
+    if demo:
+        write_paths += ["sources/demo", *(f"sources/demo/{f.parent.name}.json" for f in demo_files)]
+    _refuse_redirects(root, write_paths)
+
     root.mkdir(parents=True, exist_ok=True)
     for rel in INSTANCE_LAYOUT:
         d = root / rel
@@ -217,6 +222,19 @@ def init_instance(path: Path, name: str | None = None, demo: bool = False) -> In
     else:
         report.kept.append(MANIFEST_NAME)
     return report
+
+
+def _refuse_redirects(root: Path, rels: List[str]) -> None:
+    """Refuse, before writing anything, any write path that is or passes through a symlink inside
+    the instance (it could send a write outside it), or a layout directory that exists as a file."""
+    for rel in rels:
+        current = root
+        for part in Path(rel).parts:
+            current = current / part
+            if current.is_symlink():
+                raise InstanceError(f"{current} is a symlink; init writes only inside the instance and will not follow it")
+        if rel in INSTANCE_LAYOUT and current.exists() and not current.is_dir():
+            raise InstanceError(f"{current} exists and is not a directory")
 
 
 def _create_if_missing(path: Path, text: str, report: InitReport) -> None:
