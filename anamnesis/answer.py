@@ -17,12 +17,17 @@ Reviewer guide:
   units searched, and each such citation is labelled as not the chosen reply.
 - Quotes are the unit's own text, unhighlighted (`MessageIndex.search(highlight=False)`), so a literal
   `[` or `]` in a source survives; "…" marks where a long unit was cut.
+- `render()` is for a terminal, and an export is untrusted input: control characters (C0 apart from
+  newline and tab, DEL, C1) and bidi overrides in a quote, title, role or id are shown as visible
+  escapes such as `\x1b`, so an export cannot send terminal escape sequences (clipboard writes, cleared
+  lines, hidden text). `to_dict()` keeps the text exactly as the source has it.
 - Branch labels: `alternate` is a regenerated-away reply ("not the chosen reply"); `unknown` means the
   export doesn't record which reply was chosen, and is labelled as undetermined, never as discarded.
 """
 
 from __future__ import annotations
 
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List, Tuple
@@ -87,10 +92,29 @@ class Answer:
             return "Nothing in this memory matches that question, so there is no answer to cite."
         lines = [f"From {len(self.citations)} source message(s):"]
         for n, c in enumerate(self.citations, 1):
-            branch = _BRANCH_NOTE.get(c.branch_status, f", {c.branch_status} branch")
-            lines.append(f'[{n}] "{c.quote}"')
-            lines.append(f"    {c.author_role} in \"{c.title}\"{branch}; source {c.message_unit_id}")
+            branch = _BRANCH_NOTE.get(c.branch_status, f", {printable(c.branch_status)} branch")
+            lines.append(f'[{n}] "{printable(c.quote)}"')
+            lines.append(f"    {printable(c.author_role)} in \"{printable(c.title)}\"{branch};"
+                         f" source {printable(c.message_unit_id)}")
         return "\n".join(lines)
+
+
+# Bidi embeddings, overrides and isolates: they can make a quote display in an order it doesn't have.
+_BIDI_CONTROLS = frozenset("\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069")
+
+
+def printable(text: str) -> str:
+    """`text` safe to print to a terminal: control characters other than newline and tab, and bidi
+    controls, become visible escapes (`\\x1b`, `\\u202e`); everything else is unchanged."""
+    out = []
+    for ch in text:
+        if ch in "\n\t":
+            out.append(ch)
+        elif unicodedata.category(ch) == "Cc" or ch in _BIDI_CONTROLS:
+            out.append(f"\\x{ord(ch):02x}" if ord(ch) < 0x100 else f"\\u{ord(ch):04x}")
+        else:
+            out.append(ch)
+    return "".join(out)
 
 
 _BRANCH_NOTE = {
