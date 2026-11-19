@@ -26,7 +26,7 @@ import os
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, Iterable, List
 
 INSTANCE_SCHEMA_VERSION = "anamnesis.instance.v1"
 MANIFEST_NAME = "anamnesis.instance.json"
@@ -46,6 +46,9 @@ INSTANCE_LAYOUT: Dict[str, str] = {
 GITIGNORE_LINES = ["# anamnesis: raw sources and local caches stay out of git by default", "sources/", ".anamnesis/"]
 
 SOURCE_KINDS = {"chatgpt-export"}
+# Where the index lives (item 3; the choice per instance is Zach's). Absent `index` means "cache".
+INDEX_BACKENDS = {"cache", "in-repo"}
+DEFAULT_IN_REPO_INDEX = "index/messages.sqlite"
 VISIBILITIES = {"private", "shared", "public"}
 
 
@@ -131,6 +134,13 @@ def validate_manifest(manifest: Any) -> List[str]:
                 problems.append(f"privacy.{key} must be a list")
         if not isinstance(privacy.get("profile_only"), bool):
             problems.append("privacy.profile_only must be true or false")
+    index = manifest.get("index", {"backend": "cache"})  # optional; absent means the local cache
+    if not isinstance(index, dict) or index.get("backend") not in INDEX_BACKENDS:
+        problems.append(f"index.backend must be one of {sorted(INDEX_BACKENDS)}")
+    elif index["backend"] == "in-repo":
+        p = index.get("path", DEFAULT_IN_REPO_INDEX)
+        if not isinstance(p, str) or not p or Path(p).is_absolute() or ".." in Path(p).parts:
+            problems.append("index.path must be a relative path inside the instance")
     return problems
 
 
@@ -236,12 +246,12 @@ def init_instance(path: Path, name: str | None = None, demo: bool = False) -> In
     return report
 
 
-def _refuse_redirects(root: Path, rels: List[str]) -> None:
+def _refuse_redirects(root: Path, rels: List[str], dirs: Iterable[str] = ()) -> None:
     """Refuse, before writing anything, any write path that is or passes through a symlink inside
     the instance (it could send a write outside it), whose parent components exist as non-directories,
     or whose destination exists as the wrong kind: a directory destination that is not a directory,
     or a file destination that is not a regular file."""
-    dir_rels = set(INSTANCE_LAYOUT) | {"sources/demo"}
+    dir_rels = set(INSTANCE_LAYOUT) | {"sources/demo"} | set(dirs)
     for rel in rels:
         current = root
         parts = Path(rel).parts

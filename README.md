@@ -52,7 +52,20 @@ rules for both. The engine never depends on one.
 python3 -m anamnesis init ~/memory           # new instance, or add the missing parts in place
 python3 -m anamnesis init ~/demo --demo      # a demo instance from the synthetic fixtures
 python3 -m anamnesis check ~/memory          # validate the manifest
+python3 -m anamnesis ingest ~/memory ~/Downloads/chatgpt-export.zip   # import an export, build the index
+python3 -m anamnesis ask ~/memory "what did we decide about backups?"  # quoted, cited answer
 ```
+
+`pip install .` from a checkout installs the same commands as `anamnesis ...` (no dependencies).
+`ingest` copies each export into `sources/imported/` (named by its SHA-256, so exports that share
+the name `conversations.json` never collide), lists it in the manifest and rebuilds the index from
+every listed source; `ask` rebuilds first if a source changed. `ask` exits 3 when nothing in the
+instance matches, and then gives no answer. The index lives where the manifest's optional `index`
+says: `{"backend": "cache"}` (default, `.anamnesis/index/`, git-ignored) or
+`{"backend": "in-repo", "path": "index/messages.sqlite"}`; which an instance should use is still open
+(`docs/research/index-storage.md`). `tests/test_cold.py` is the cold test: a fresh HOME and the
+package alone, `init ~/memory`, ingest a synthetic export, ask, cite (`ANAMNESIS_COLD_INSTALL=1` makes
+it a real `pip install` into a new venv).
 
 | Path | Holds |
 |---|---|
