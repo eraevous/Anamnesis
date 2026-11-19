@@ -101,6 +101,32 @@ class WorkflowTests(unittest.TestCase):
             mpath.write_bytes(before)
         self.assertTrue((self.inst / source).read_bytes().startswith(b"["))
 
+    def test_in_repo_index_never_replaces_a_foreign_database(self):
+        """Codex security review of 8579912 (P2): index.path naming another SQLite file clobbered it."""
+        import sqlite3
+        foreign = self.inst / "important.sqlite"
+        con = sqlite3.connect(foreign)
+        con.execute("CREATE TABLE secrets (v TEXT)")
+        con.execute("INSERT INTO secrets VALUES ('keep me')")
+        con.commit()
+        con.close()
+        before = foreign.read_bytes()
+        mpath = self.inst / "anamnesis.instance.json"
+        manifest = json.loads(mpath.read_text(encoding="utf-8"))
+        manifest["index"] = {"backend": "in-repo", "path": "important.sqlite"}
+        mpath.write_text(json.dumps(manifest), encoding="utf-8")
+        with self.assertRaisesRegex(InstanceError, "not an anamnesis index"):
+            ingest_into_instance(self.inst, [F11])
+        self.assertEqual(foreign.read_bytes(), before)
+        foreign.write_bytes(b"not sqlite at all")
+        with self.assertRaises(InstanceError):
+            ingest_into_instance(self.inst, [F11])
+        self.assertEqual(foreign.read_bytes(), b"not sqlite at all")
+        foreign.unlink()  # absent: built; present and ours: rebuilt in place
+        ingest_into_instance(self.inst, [F11])
+        ingest_into_instance(self.inst, [F00])
+        self.assertTrue(ask_instance(self.inst, "zephyrine")[0].found)
+
     def test_symlinked_cache_file_is_refused(self):
         """Codex review of d57aec7 (P2): a linked <digest>.sqlite was opened and written outside."""
         ingest_into_instance(self.inst, [F11])

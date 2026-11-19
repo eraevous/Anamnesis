@@ -24,6 +24,7 @@ import hashlib
 import json
 import os
 import shutil
+import sqlite3
 import tempfile
 import uuid
 import zipfile
@@ -77,9 +78,25 @@ def index_store(root: Path, manifest: dict) -> IndexStore:
     if cfg["backend"] == "in-repo":
         rel = cfg.get("path", DEFAULT_IN_REPO_INDEX)
         _refuse_redirects(root, [rel], dirs=[str(Path(rel).parent)] if Path(rel).parent != Path(".") else [])
+        if (root / rel).exists() and not _is_anamnesis_index(root / rel):
+            # a build replaces this file: never clobber a database (or anything else) that isn't ours
+            raise InstanceError(f"{rel} exists and is not an anamnesis index; refusing to replace it")
         return InRepoStore(root / rel)
     _refuse_redirects(root, [".anamnesis", CACHE_DIR], dirs=[CACHE_DIR])
     return CacheStore(root / CACHE_DIR)
+
+
+def _is_anamnesis_index(path: Path) -> bool:
+    """True only for an SQLite file whose meta table names an anamnesis index schema (read-only check)."""
+    try:
+        con = sqlite3.connect(f"{path.resolve().as_uri()}?mode=ro", uri=True)
+        try:
+            row = con.execute("SELECT value FROM meta WHERE key = 'schema_version'").fetchone()
+        finally:
+            con.close()
+    except sqlite3.Error:
+        return False
+    return bool(row) and isinstance(row[0], str) and row[0].startswith("anamnesis.")
 
 
 def _source_files(root: Path, manifest: dict) -> List[Path]:
