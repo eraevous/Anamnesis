@@ -177,6 +177,38 @@ class QuoteAndBranchLabelTests(unittest.TestCase):
             self.assertNotIn("not the chosen reply", text)
 
 
+class TerminalSafetyTests(unittest.TestCase):
+    """Idle security cycle (lane-rules §5): an export is untrusted, and `ask` prints it to a terminal."""
+
+    def test_render_shows_escape_sequences_instead_of_sending_them(self):
+        evil = "plan kestrel \x1b]52;c;ZXZpbA==\x07 then \x1b[2K\r\x9b31m done"
+        with tempfile.TemporaryDirectory() as tmp, MessageIndex() as ix:
+            ingest(ix, [QuoteAndBranchLabelTests.export(tmp, [("user", evil), ("assistant", "ok")])])
+            answer = ask(ix, "kestrel")
+            text = answer.render()
+            for raw in ("\x1b", "\x07", "\r", "\x9b"):
+                self.assertNotIn(raw, text)
+            self.assertIn(r"\x1b]52;c;ZXZpbA==\x07", text)
+            self.assertIn(r"\x9b31m", text)
+            # the data itself is unchanged: JSON consumers get the source text exactly
+            self.assertEqual(answer.citations[0].quote, evil)
+
+    def test_render_escapes_titles_and_bidi_overrides_but_keeps_newlines_and_tabs(self):
+        from anamnesis.answer import printable
+        self.assertEqual(printable("a\nb\tc"), "a\nb\tc")
+        self.assertEqual(printable("abc\u202edcba"), r"abc\u202edcba")
+        self.assertEqual(printable("café ✓ 漢字"), "café ✓ 漢字")
+        with tempfile.TemporaryDirectory() as tmp, MessageIndex() as ix:
+            path = QuoteAndBranchLabelTests.export(tmp, [("user", "the osprey list"), ("assistant", "ok")])
+            data = json.loads(path.read_text(encoding="utf-8"))
+            data[0]["title"] = "plain\x1b[8mhidden"
+            path.write_text(json.dumps(data), encoding="utf-8")
+            ingest(ix, [path])
+            text = ask(ix, "osprey").render()
+            self.assertNotIn("\x1b", text)
+            self.assertIn(r'"plain\x1b[8mhidden"', text)
+
+
 class FreshProcessTests(unittest.TestCase):
     def test_a_new_process_answers_from_the_index_file_alone(self):
         # Steps 3 and 4 of the cold test across a process boundary: ingest writes an index file,
