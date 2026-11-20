@@ -239,3 +239,30 @@ class BenchSmokeTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SharedHelperTests(unittest.TestCase):
+    """The streaming hash and read-only meta lookup that storage and workflow share."""
+
+    def test_sources_digest_matches_its_documented_formula(self):
+        import hashlib
+        from anamnesis.index import INDEX_SCHEMA_VERSION
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            big = root / "sources" / "big.json"  # over one 1 MiB chunk, so streaming is exercised
+            big.parent.mkdir(parents=True)
+            big.write_bytes(b"x" * ((1 << 20) + 7))
+            small = write_export(root, "small.json", "kestrel")
+            want = hashlib.sha256(INDEX_SCHEMA_VERSION.encode("utf-8") + b"\0")
+            for f in (big, small):
+                rel = f.relative_to(root).as_posix()
+                want.update(rel.encode("utf-8") + b"\0" + hashlib.sha256(f.read_bytes()).digest())
+            self.assertEqual(sources_digest(root, [big, small]), want.hexdigest())
+
+    def test_read_meta_is_none_for_a_file_that_is_not_an_index(self):
+        from anamnesis.storage import read_meta
+        with tempfile.TemporaryDirectory() as tmp:
+            junk = Path(tmp) / "messages.sqlite"
+            junk.write_text("not a database")
+            self.assertIsNone(read_meta(junk, "schema_version"))
+            self.assertEqual(junk.read_text(), "not a database")  # read-only: left as it was
