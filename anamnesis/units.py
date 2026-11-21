@@ -1,7 +1,8 @@
 """Message units: one record per node of a ChatGPT export, every branch kept.
 
 Ported from eraevous/anamnesis-spike-rescue `src/core/corpus/message_units.py` (WIP 7f7aea2), with the
-two helpers it borrowed from the provider-coupled parser (`_content_text`, `normalize_filename`)
+two helpers it borrowed from the provider-coupled parser (`_content_text`, now `content_text`;
+`normalize_filename`, now `normalize_key`)
 inlined, so this module imports the standard library only (HO-ANA-20261118-6H0J item 1).
 
 Reviewer guide:
@@ -21,6 +22,7 @@ import hashlib
 import json
 import re
 import zipfile
+from collections import Counter
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
@@ -65,6 +67,22 @@ def _hash_text(text: str) -> str:
 
 def _unit_id(conversation_id: str, message_id: str) -> str:
     return f"chatgpt-message:{conversation_id}:{message_id}"
+
+
+# Optional fields, in the order `to_dict` writes them; a None value is left out of the dict.
+_UNIT_OPTIONAL = (
+    "external_conversation_id", "parent_node_id", "active_branch_index", "transcript_index",
+    "transcript_start", "transcript_end", "author_name", "text", "content_hash", "content_type",
+    "create_time", "update_time", "model_slug", "model_slug_source", "default_model_slug",
+    "default_model_slug_source", "project_id", "project_id_source", "project_name",
+    "message_type", "message_source", "request_id", "turn_exchange_id", "status", "end_turn",
+)
+_UNIT_OPTIONAL_INTS = ("active_branch_index", "transcript_index", "transcript_start", "transcript_end")
+_BUNDLE_OPTIONAL = (
+    "external_conversation_id", "current_node_id", "create_time", "update_time",
+    "default_model_slug", "project_id", "project_id_source", "project_name", "memory_scope",
+    "conversation_template_id",
+)
 
 
 @dataclass(frozen=True)
@@ -119,35 +137,8 @@ class MessageUnit:
             "source_index": self.source_index,
             "child_node_ids": list(self.child_node_ids),
         }
-        optional = {
-            "external_conversation_id": self.external_conversation_id,
-            "parent_node_id": self.parent_node_id,
-            "active_branch_index": self.active_branch_index,
-            "transcript_index": self.transcript_index,
-            "transcript_start": self.transcript_start,
-            "transcript_end": self.transcript_end,
-            "author_name": self.author_name,
-            "text": self.text,
-            "content_hash": self.content_hash,
-            "content_type": self.content_type,
-            "create_time": self.create_time,
-            "update_time": self.update_time,
-            "model_slug": self.model_slug,
-            "model_slug_source": self.model_slug_source,
-            "default_model_slug": self.default_model_slug,
-            "default_model_slug_source": self.default_model_slug_source,
-            "project_id": self.project_id,
-            "project_id_source": self.project_id_source,
-            "project_name": self.project_name,
-            "message_type": self.message_type,
-            "message_source": self.message_source,
-            "request_id": self.request_id,
-            "turn_exchange_id": self.turn_exchange_id,
-            "status": self.status,
-            "end_turn": self.end_turn,
-        }
         payload.update(
-            {key: value for key, value in optional.items() if value is not None}
+            {key: value for key in _UNIT_OPTIONAL if (value := getattr(self, key)) is not None}
         )
         return payload
 
@@ -156,58 +147,22 @@ class MessageUnit:
         schema_version = payload.get("schema_version")
         if schema_version != MESSAGE_UNIT_SCHEMA_VERSION:
             raise ValueError(f"Unsupported message-unit schema: {schema_version}")
+        optional = {key: payload.get(key) for key in _UNIT_OPTIONAL}
+        for key in _UNIT_OPTIONAL_INTS:
+            if optional[key] is not None:
+                optional[key] = int(optional[key])
         return cls(
             message_unit_id=str(payload["message_unit_id"]),
             source_type=str(payload.get("source_type") or "chatgpt_message"),
             conversation_id=str(payload["conversation_id"]),
-            external_conversation_id=payload.get("external_conversation_id"),
             message_id=str(payload["message_id"]),
             node_id=str(payload["node_id"]),
-            parent_node_id=payload.get("parent_node_id"),
             child_node_ids=[str(value) for value in payload.get("child_node_ids", [])],
             author_role=str(payload["author_role"]),
-            author_name=payload.get("author_name"),
             unit_type=MessageUnitKind(str(payload["unit_type"])),
             branch_status=BranchStatus(str(payload["branch_status"])),
             source_index=int(payload["source_index"]),
-            active_branch_index=(
-                int(payload["active_branch_index"])
-                if payload.get("active_branch_index") is not None
-                else None
-            ),
-            transcript_index=(
-                int(payload["transcript_index"])
-                if payload.get("transcript_index") is not None
-                else None
-            ),
-            transcript_start=(
-                int(payload["transcript_start"])
-                if payload.get("transcript_start") is not None
-                else None
-            ),
-            transcript_end=(
-                int(payload["transcript_end"])
-                if payload.get("transcript_end") is not None
-                else None
-            ),
-            text=payload.get("text"),
-            content_hash=payload.get("content_hash"),
-            content_type=payload.get("content_type"),
-            create_time=payload.get("create_time"),
-            update_time=payload.get("update_time"),
-            model_slug=payload.get("model_slug"),
-            model_slug_source=payload.get("model_slug_source"),
-            default_model_slug=payload.get("default_model_slug"),
-            default_model_slug_source=payload.get("default_model_slug_source"),
-            project_id=payload.get("project_id"),
-            project_id_source=payload.get("project_id_source"),
-            project_name=payload.get("project_name"),
-            message_type=payload.get("message_type"),
-            message_source=payload.get("message_source"),
-            request_id=payload.get("request_id"),
-            turn_exchange_id=payload.get("turn_exchange_id"),
-            status=payload.get("status"),
-            end_turn=payload.get("end_turn"),
+            **optional,
         )
 
 
@@ -237,22 +192,11 @@ class ConversationMessageBundle:
             "title": self.title,
             "messages": [message.to_dict() for message in self.messages],
         }
-        optional = {
-            "external_conversation_id": self.external_conversation_id,
-            "current_node_id": self.current_node_id,
-            "create_time": self.create_time,
-            "update_time": self.update_time,
-            "default_model_slug": self.default_model_slug,
-            "project_id": self.project_id,
-            "project_id_source": self.project_id_source,
-            "project_name": self.project_name,
-            "memory_scope": self.memory_scope,
-            "conversation_template_id": self.conversation_template_id,
-            "skipped_node_parents": dict(self.skipped_node_parents) or None,
-        }
         payload.update(
-            {key: value for key, value in optional.items() if value is not None}
+            {key: value for key in _BUNDLE_OPTIONAL if (value := getattr(self, key)) is not None}
         )
+        if self.skipped_node_parents:
+            payload["skipped_node_parents"] = dict(self.skipped_node_parents)
         return payload
 
     @classmethod
@@ -263,19 +207,10 @@ class ConversationMessageBundle:
             )
         return cls(
             conversation_id=str(payload["conversation_id"]),
-            external_conversation_id=payload.get("external_conversation_id"),
             title=str(payload["title"]),
-            current_node_id=payload.get("current_node_id"),
-            create_time=payload.get("create_time"),
-            update_time=payload.get("update_time"),
-            default_model_slug=payload.get("default_model_slug"),
-            project_id=payload.get("project_id"),
-            project_id_source=payload.get("project_id_source"),
-            project_name=payload.get("project_name"),
-            memory_scope=payload.get("memory_scope"),
-            conversation_template_id=payload.get("conversation_template_id"),
             skipped_node_parents=dict(payload.get("skipped_node_parents") or {}),
             messages=[MessageUnit.from_dict(item) for item in payload["messages"]],
+            **{key: payload.get(key) for key in _BUNDLE_OPTIONAL},
         )
 
 
@@ -348,7 +283,7 @@ def _transcript_spans(
         role = str(author.get("role") or "unknown").lower()
         if role == "system":
             continue
-        text = _content_text(content).strip()
+        text = content_text(content).strip()
         if not text:
             continue
         if transcript_index:
@@ -402,7 +337,7 @@ def build_conversation_message_bundle(
         if not isinstance(content, dict):
             content = {}
         role = str(author.get("role") or "unknown").lower()
-        text = _content_text(content).strip() or None
+        text = content_text(content).strip() or None
         observed_model = _optional_string(metadata.get("model_slug"))
         message_default_model = _optional_string(metadata.get("default_model_slug"))
         default_model = message_default_model or conversation_default_model
@@ -524,21 +459,11 @@ def active_message_fingerprints(bundle: ConversationMessageBundle) -> List[str]:
 
 
 def summarize_bundle(bundle: ConversationMessageBundle) -> Dict[str, Any]:
-    role_counts: Dict[str, int] = {}
-    kind_counts: Dict[str, int] = {}
-    models: set[str] = set()
-    default_models: set[str] = set()
-    projects: set[str] = set()
-    for message in bundle.messages:
-        role_counts[message.author_role] = role_counts.get(message.author_role, 0) + 1
-        kind = message.unit_type.value
-        kind_counts[kind] = kind_counts.get(kind, 0) + 1
-        if message.model_slug:
-            models.add(message.model_slug)
-        if message.default_model_slug:
-            default_models.add(message.default_model_slug)
-        if message.project_id:
-            projects.add(message.project_id)
+    role_counts = Counter(message.author_role for message in bundle.messages)
+    kind_counts = Counter(message.unit_type.value for message in bundle.messages)
+    models = {m.model_slug for m in bundle.messages if m.model_slug}
+    default_models = {m.default_model_slug for m in bundle.messages if m.default_model_slug}
+    projects = {m.project_id for m in bundle.messages if m.project_id}
     payload: Dict[str, Any] = {
         "message_count": len(bundle.messages),
         "active_message_count": sum(
@@ -580,8 +505,6 @@ def content_text(content: Dict[str, Any]) -> str:
         text_parts.append(direct_text)
     return "\n".join(p for p in text_parts if p.strip())
 
-
-_content_text = content_text
 
 
 def normalize_key(name: str) -> str:
