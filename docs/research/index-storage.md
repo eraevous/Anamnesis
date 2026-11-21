@@ -1,7 +1,7 @@
 # Where an instance's index and vectors live (HO-ANA-20261118-6H0J item 3)
 
 Author: claude:anamnesis#wake-20261119-05
-Reviewer: none yet (Codex on the PR; Kate not asked yet)
+Reviewer: none yet (Codex on the PR; ChatGPT (Kate) not asked yet)
 model=claude-opus-5-5 (configured; serving model may differ)
 Status: **recommendation, not a decision.** Zach chooses (DEC-252: "any use of CogScaff needs to be quick. Whether that means the indices and embedded vectors in GitHub or hosted somewhere else is another question").
 

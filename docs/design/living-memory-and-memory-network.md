@@ -1,7 +1,7 @@
 # Design note: living memory, a memory network, and the first full run
 
 - Status: **direction adopted (D1), design only.** Zach answered D1–D5 on 2026-11-15 (§7). Nothing is built. The R-MEM requirements become committed only when Zach merges the PR that records them; D4 is open and under research.
-- Revised by `claude:anamnesis#wake-20261115-17` for handoff HO-KAI-20261115-936P: §2 (rolling Cells, family), §3 (nothing applies automatically until D4), §4.5 (embeddings), §7 (answers). Two of the readings applied here are the coordinator's and are **unconfirmed** (R1, R2 in §7).
+- Revised by `claude:anamnesis#wake-20261115-17` for handoff HO-KAI-20261115-936P: §2 (rolling Cells, family), §3 (nothing applies automatically until D4), §4.5 (embeddings), §7 (answers). Two of the readings applied here are the orchestrator's (coordinator's) and are **unconfirmed** (R1, R2 in §7).
 - Author: `claude:anamnesis#wake-2026-11-15-05`, a scheduled run, for handoff HO-KAI-20261115-7MV6 (private coordination records; named by id only).
 - Basis: two messages from Zach (2026-11-14, quoted in §0), and his confirmation of the coordinator's reading that this is design input, not a build request.
 - Builds on, and does not replace: [segment retrieval and claim recurrence](segment-retrieval-and-claim-recurrence.md) (the claim ledger, evidence classes, quote guard), [the saga](saga.md) (narrative layer that descends to records), [benchmark fixtures](benchmark-fixture-plan.md).
@@ -49,14 +49,14 @@ Five questions follow from these: what to take from Dreaming V3 (§1), which uni
 
 1. **Provenance for every synthesized fact.** Each sentence in a Frame points to `claim_id@rev`, and each claim to evidence links (quote spans in source units) with speaker, source, time and what it replaced [existing: §4–5 of the segment note]. A Frame sentence without a resolvable locator is a defect, not a style choice.
 2. **Reversible history, no overwrite.** Claims are append-only revisions. Any Frame can be re-rendered at any past ledger revision ("what did the memory say on 1 November?"). Switching back is a query, not a restore.
-3. **Several kinds of memory, not one profile.** Separate claim scopes (shelves), each with its own Frame and its own aging rules:
+3. **Several kinds of memory, not one profile.** Separate claim scopes (shelves), each with its own Frame and its own aging rules. In standard terms the shelves hold semantic memory (claims about people, projects and decisions) and some procedural memory (preferences, agents' rules); the source units and Cells they cite are the episodic memory:
 
 | shelf | holds | ages by |
 |---|---|---|
 | people | who someone is to Zach, roles, how to work with them | role changes; explicit statements |
 | projects | goals, state, scope, what's parked | status changes in records |
 | decisions | what was decided, by whom, superseded by what | ledger supersession only |
-| agent lanes | what each lane is for, its rules, who it pairs with | lane-rule changes |
+| agents (lanes) | what each lane (an agent) is for, its rules, who it pairs with | lane-rule changes |
 | preferences | how Zach wants work done | his explicit restatement only |
 
 4. **Generated text is never evidence** [existing]. A Frame, a saga chapter or an agent's discussion can guide where to look; only quote spans in source units justify a claim. This is the guard against the "durable bad claim" failure.
@@ -100,7 +100,7 @@ What Zach describes is a set of agents that circulate, read, evaluate and discus
 | Librarian (later) | ledger, Films, saga | re-rendered Frames, Films and strands (all `generated_summary`) | after accepted revisions |
 | Steward (later) | everything that leaves the local store | blocks; never edits content | every export or share |
 
-The Challenger is the natural seat for the other model family (Kate's role in Kairos), so that the agent checking a claim isn't the one that proposed it.
+The Challenger is the natural seat for the other model family (the role of ChatGPT (Kate), the cross-family reviewer, in Kairos), so that the agent checking a claim isn't the one that proposed it.
 
 ### What no role may do
 

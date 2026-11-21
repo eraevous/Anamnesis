@@ -14,7 +14,7 @@
 
 ## 1. The problem
 
-Detailed records are many and flat. A question like "why did we stop stacking PRs?" or "when did Anamnesis become a lane again?" currently means grepping hundreds of ledger lines, handoffs and status files, or rereading long threads. [record: the private decision ledger had 205 lines on 2026-11-11.] A flat search returns hits without the situation they came from. A summary gives the situation but loses the detail, and summaries tend to settle disagreements that were never settled [record: Abigail's convention input §5, "summaries should preserve conflicts rather than silently settle them"].
+Detailed records are many and flat. A question like "why did we stop stacking PRs?" or "when did Anamnesis become a lane (an agent) again?" currently means grepping hundreds of ledger lines, handoffs and status files, or rereading long threads. [record: the private decision ledger had 205 lines on 2026-11-11.] A flat search returns hits without the situation they came from. A summary gives the situation but loses the detail, and summaries tend to settle disagreements that were never settled [record: Abigail's convention input §5, "summaries should preserve conflicts rather than silently settle them"].
 
 The saga is the middle layer: a short narrative that says what happened and when, where every sentence points down to the records that support it. You read the story to find the place, then descend to the evidence.
 
@@ -104,7 +104,7 @@ A small stdlib script, `saga_check`, to be built later (not in this PR):
 2. **Evidence for the concern:** the 2026-11-05 synthesis found a recurring pattern, "the provenance layer gets built before the test of whether it saves anyone anything" [record: kairos/synthesis-2026-11-05.md §A]. A saga is one more layer.
 3. **Counter-evidence:** Zach asked for it directly [Zach]. DEC-200 allows shipping on an asserted benefit with a stated mechanism [record]. The saga stays non-citable (§8), so it can't become authority.
 4. **If the concern is right:** chapters get read as truth, and dissent gets smoothed out in later regenerations. The cost is wrong answers that look sourced.
-5. **What to test, escalate or decide:** run F-S1 before automating generation. Zach decides whether the saga is a lane deliverable or a coordinator checkpoint duty (Q-S1 below). Keep the "never citable" rule as a requirement record (R-SAGA-2).
+5. **What to test, escalate or decide:** run F-S1 before automating generation. Zach decides whether the saga is a lane deliverable or an orchestrator (coordinator) checkpoint duty (Q-S1 below). Keep the "never citable" rule as a requirement record (R-SAGA-2).
 
 ## 11. Open questions (for Zach; none decided)
 - **Q-S1 Owner:** who regenerates at checkpoints, the Anamnesis lane or the coordinator? Proposed: the lane writes the generator and the coordinator runs it at checkpoints.
