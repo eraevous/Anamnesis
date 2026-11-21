@@ -26,6 +26,7 @@ import shutil
 import tempfile
 import uuid
 import zipfile
+import zlib
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -43,7 +44,10 @@ IMPORT_DIR = "sources/imported"
 CACHE_DIR = ".anamnesis/index"
 RUN_SCHEMA_VERSION = "anamnesis.run.v1"
 # What a malformed export raises while it is parsed; each is reported as "not a readable ChatGPT export".
-EXPORT_ERRORS = (ValueError, KeyError, TypeError, AttributeError, zipfile.BadZipFile)
+# RecursionError: JSON nested deeper than the parser's stack. zlib.error and EOFError: a damaged or cut-off
+# compressed member. NotImplementedError: a ZIP member compressed with a method zipfile can't read.
+EXPORT_ERRORS = (ValueError, KeyError, TypeError, AttributeError, zipfile.BadZipFile,
+                 RecursionError, zlib.error, EOFError, NotImplementedError)
 
 
 @dataclass
