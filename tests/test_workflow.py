@@ -4,8 +4,10 @@ from __future__ import annotations
 import io
 import json
 import shutil
+import struct
 import tempfile
 import unittest
+import zipfile
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
@@ -155,6 +157,49 @@ class WorkflowTests(unittest.TestCase):
         src.write_text("{not json", encoding="utf-8")
         with self.assertRaisesRegex(InstanceError, "is not a readable ChatGPT export"):
             ask_instance(self.inst, "zephyrine")
+
+    def _zip_export(self, name: str) -> Path:
+        path = self.tmp / name
+        with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("conversations.json", json.dumps(json.loads(F11.read_text(encoding="utf-8")) * 200))
+        return path
+
+    def assert_refused_cleanly(self, export: Path) -> None:
+        before = (self.inst / "anamnesis.instance.json").read_bytes()
+        with self.assertRaisesRegex(InstanceError, "not a readable ChatGPT export"):
+            ingest_into_instance(self.inst, [export])
+        self.assertEqual((self.inst / "anamnesis.instance.json").read_bytes(), before)
+        err = io.StringIO()
+        with redirect_stderr(err), redirect_stdout(io.StringIO()):
+            self.assertEqual(main(["ingest", str(self.inst), str(export)]), 1)
+        self.assertIn("not a readable ChatGPT export", err.getvalue())
+
+    def test_deeply_nested_export_is_refused_without_a_traceback(self):
+        """Idle security cycle: JSON nested past the parser's stack raised RecursionError."""
+        deep = self.tmp / "deep.json"
+        deep.write_text("[" * 100_000 + "]" * 100_000, encoding="utf-8")
+        self.assert_refused_cleanly(deep)
+
+    def test_damaged_zip_member_is_refused_without_a_traceback(self):
+        """Idle security cycle: a corrupted deflate stream raised zlib.error."""
+        good = self._zip_export("good.zip")
+        raw = bytearray(good.read_bytes())
+        start = raw.find(b"conversations.json") + len("conversations.json")
+        for k in range(start + 20, start + 60):
+            raw[k] ^= 0xFF
+        bad = self.tmp / "damaged.zip"
+        bad.write_bytes(bytes(raw))
+        self.assert_refused_cleanly(bad)
+
+    def test_unsupported_zip_compression_is_refused_without_a_traceback(self):
+        """Idle security cycle: a member compressed with an unknown method raised NotImplementedError."""
+        raw = bytearray(self._zip_export("good.zip").read_bytes())
+        for sig, offset in ((b"PK\x03\x04", 8), (b"PK\x01\x02", 10)):  # local and central headers
+            at = raw.find(sig) + offset
+            raw[at:at + 2] = struct.pack("<H", 99)
+        bad = self.tmp / "method.zip"
+        bad.write_bytes(bytes(raw))
+        self.assert_refused_cleanly(bad)
 
     def test_renamed_copy_of_an_imported_export_is_not_listed_again(self):
         """Copilot review of 493be7d: the same bytes under a new name were listed again, after newer ones."""
