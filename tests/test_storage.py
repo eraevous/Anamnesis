@@ -30,6 +30,8 @@ def builder(paths):
 
 
 class DigestTests(unittest.TestCase):
+    """Requirements: R-ENG-4 (implementer mapping)."""
+
     def test_digest_tracks_content_paths_and_order(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
@@ -98,6 +100,8 @@ class DigestTests(unittest.TestCase):
 
 
 class BackendTests(unittest.TestCase):
+    """Requirements: R-ENG-4 (implementer mapping)."""
+
     def check_backend(self, make_store):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
@@ -242,7 +246,10 @@ if __name__ == "__main__":
 
 
 class SharedHelperTests(unittest.TestCase):
-    """The streaming hash and read-only meta lookup that storage and workflow share."""
+    """The streaming hash and read-only meta lookup that storage and workflow share.
+
+    Requirements: R-ENG-4 (implementer mapping).
+    """
 
     def test_sources_digest_matches_its_documented_formula(self):
         import hashlib

@@ -46,6 +46,8 @@ def synthetic_export(path: Path) -> None:
 
 
 class ColdTest(unittest.TestCase):
+    """Requirements: R-ENG-6 (implementer mapping)."""
+
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp(prefix="anamnesis-cold-"))
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)

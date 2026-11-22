@@ -37,6 +37,8 @@ def tree_digest(root: Path) -> dict:
 
 
 class InitTests(unittest.TestCase):
+    """Requirements: R-ENG-3 (implementer mapping)."""
+
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
         self.tmp = Path(self._tmp.name)
@@ -235,6 +237,8 @@ class InitTests(unittest.TestCase):
 
 
 class ManifestTests(unittest.TestCase):
+    """Requirements: R-ENG-3 (implementer mapping)."""
+
     def test_default_manifest_is_valid(self):
         self.assertEqual(validate_manifest(default_manifest("m")), [])
 
@@ -269,6 +273,8 @@ class ManifestTests(unittest.TestCase):
 
 
 class EngineIndependenceTests(unittest.TestCase):
+    """Requirements: R-ENG-1, R-ENG-3 (implementer mapping)."""
+
     def test_engine_names_no_instance(self):
         """R-ENG-3: the engine depends on no instance; no module names one or a home-folder path."""
         pattern = re.compile(r"cognitive.?scaffolding|cogscaff|~/|/home/|/Users/", re.IGNORECASE)
@@ -280,6 +286,8 @@ class EngineIndependenceTests(unittest.TestCase):
 
 
 class CliTests(unittest.TestCase):
+    """Requirements: R-ENG-3, R-ENG-6 (implementer mapping)."""
+
     def run_cli(self, *args):
         return subprocess.run([sys.executable, "-m", "anamnesis", *args], cwd=ROOT,
                               capture_output=True, text=True, timeout=60)

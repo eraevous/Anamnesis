@@ -53,6 +53,8 @@ def conv(cid="conv-A", texts=(("user", "hello quillfern"), ("assistant", "hi the
 
 
 class ImportTests(unittest.TestCase):
+    """Requirements: R-ENG-1 (implementer mapping)."""
+
     def test_engine_imports_stdlib_only(self):
         # Reconciliation §4 item 4: the offline path must import without tiktoken/openai.
         code = ("import sys, anamnesis; bad = sorted(m for m in ('tiktoken', 'openai', 'numpy', 'torch')"
@@ -68,6 +70,8 @@ class ImportTests(unittest.TestCase):
 
 
 class UnitTests(unittest.TestCase):
+    """Requirements: R-SEG-1, R-SEG-2 (implementer mapping)."""
+
     def test_gold_active_path_and_alternates(self):
         for fx in FIXTURES:
             with self.subTest(fixture=fx.name):
@@ -124,7 +128,10 @@ def bundles_from_export_from(*conversations):
 
 
 class IndexGoldTests(unittest.TestCase):
-    """Scores the FTS5 index against each fixture's gold objectives."""
+    """Scores the FTS5 index against each fixture's gold objectives.
+
+    Requirements: R-ENG-2, R-SEG-1, R-SEG-2, R-SEG-5 (implementer mapping).
+    """
 
     def setUp(self):
         self.ix = MessageIndex()
@@ -203,6 +210,8 @@ class IndexGoldTests(unittest.TestCase):
 
 
 class CopilotRoundOneTests(unittest.TestCase):
+    """Requirements: R-ENG-2 (implementer mapping)."""
+
     def test_idle_index_does_not_lock_the_file(self):
         # Copilot finding on 776fd0d: the constructor left a write transaction open.
         with tempfile.TemporaryDirectory() as tmp:
@@ -224,6 +233,8 @@ class CopilotRoundOneTests(unittest.TestCase):
 
 
 class ReplaceTests(unittest.TestCase):
+    """Requirements: R-ENG-2 (implementer mapping)."""
+
     def test_readding_a_unit_with_no_text_removes_its_old_row(self):
         # Codex finding on 0a273ff: an emptied unit stayed searchable with its old text.
         before = conv("conv-r", (("user", "where is the answer"), ("assistant", "answer quillfern")))
@@ -237,6 +248,8 @@ class ReplaceTests(unittest.TestCase):
 
 
 class CellTests(unittest.TestCase):
+    """Requirements: R-MEM-4, R-MEM-5 (implementer mapping)."""
+
     def test_cells_walk_through_nodes_with_no_message(self):
         # Codex finding on 0a273ff: user -> (message: null) -> assistant produced no Cell.
         c = conv("conv-n", (("user", "ask"), ("assistant", "reply")))
@@ -278,6 +291,8 @@ class CellTests(unittest.TestCase):
 
 
 class EmbedderTests(unittest.TestCase):
+    """Requirements: R-MEM-6 (implementer mapping)."""
+
     def test_hashing_embedder_is_an_embedder_and_deterministic(self):
         e = HashingEmbedder(dim=32)
         self.assertIsInstance(e, anamnesis.Embedder)

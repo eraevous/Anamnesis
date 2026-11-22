@@ -21,6 +21,8 @@ F00 = FIXTURES / "F-00" / "conversation.json"
 
 
 class WorkflowTests(unittest.TestCase):
+    """Requirements: R-ENG-6 (implementer mapping)."""
+
     def setUp(self):
         self.tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)

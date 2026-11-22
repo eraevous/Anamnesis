@@ -46,6 +46,8 @@ def unit_texts(conv: list, gold: dict) -> dict[str, str]:
 
 
 class GeneratorTests(unittest.TestCase):
+    """Requirements: R-FIX-1 (implementer mapping)."""
+
     def test_committed_fixtures_are_fresh(self):
         self.assertEqual(fixturegen.main(["--check"]), 0, "run: python3 -m benchmark.fixturegen")
 
@@ -94,7 +96,10 @@ class GeneratorTests(unittest.TestCase):
 
 
 class ExportShapeTests(unittest.TestCase):
-    """conversation.json must look like a ChatGPT export so the rescued core ingests it unchanged."""
+    """conversation.json must look like a ChatGPT export so the rescued core ingests it unchanged.
+
+    Requirements: R-FIX-1 (implementer mapping).
+    """
 
     def test_tree(self):
         for fid in fixturegen.outline_ids():
@@ -141,6 +146,8 @@ class ExportShapeTests(unittest.TestCase):
 
 
 class GoldTests(unittest.TestCase):
+    """Requirements: R-FIX-1, R-EV-2 (implementer mapping)."""
+
     def test_committed_gold_validates(self):
         for fid in fixturegen.outline_ids():
             conv, gold = load(fid)
@@ -225,7 +232,10 @@ class GoldTests(unittest.TestCase):
 
 
 class FixturePropertyTests(unittest.TestCase):
-    """The promises each README makes, checked mechanically."""
+    """The promises each README makes, checked mechanically.
+
+    Requirements: R-FIX-1 (implementer mapping).
+    """
 
     def _island_units(self, gold, iid):
         isl = next(i for i in gold["islands"] if i["id"] == iid)

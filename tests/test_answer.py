@@ -31,6 +31,8 @@ def units_of(*names: str) -> dict:
 
 
 class IngestTests(unittest.TestCase):
+    """Requirements: R-ENG-6 (implementer mapping)."""
+
     def test_report_counts_every_export_conversation_and_unit(self):
         names = ["F-00", "F-11", "F-12"]
         with MessageIndex() as ix:
@@ -51,6 +53,8 @@ class IngestTests(unittest.TestCase):
 
 
 class AskTests(unittest.TestCase):
+    """Requirements: R-ENG-5 (implementer mapping)."""
+
     def setUp(self):
         self.ix = MessageIndex()
         self.names = ["F-00", "F-11"]
@@ -136,7 +140,10 @@ class AskTests(unittest.TestCase):
 
 
 class QuoteAndBranchLabelTests(unittest.TestCase):
-    """Codex review of 84dd33b: literal brackets survive; unknown branches aren't called discarded."""
+    """Codex review of 84dd33b: literal brackets survive; unknown branches aren't called discarded.
+
+    Requirements: R-ENG-5 (implementer mapping).
+    """
 
     @staticmethod
     def export(tmp: str, texts, current_node=True) -> Path:
@@ -210,6 +217,8 @@ class TerminalSafetyTests(unittest.TestCase):
 
 
 class FreshProcessTests(unittest.TestCase):
+    """Requirements: R-ENG-5, R-ENG-6 (implementer mapping)."""
+
     def test_a_new_process_answers_from_the_index_file_alone(self):
         # Steps 3 and 4 of the cold test across a process boundary: ingest writes an index file,
         # a separate process with no export opens it and gets a cited answer.
