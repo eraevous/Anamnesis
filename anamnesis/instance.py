@@ -106,6 +106,8 @@ def validate_manifest(manifest: Any) -> List[str]:
         p = src.get("path")
         if not isinstance(p, str) or not p:
             problems.append(f"sources[{i}].path must be a non-empty string")
+        elif "\0" in p:  # the OS refuses it; reported here, not as a traceback or "missing" later
+            problems.append(f"sources[{i}].path must not contain a NUL character")
         elif Path(p).is_absolute() or ".." in Path(p).parts:
             problems.append(f"sources[{i}].path must be relative and stay inside the instance")
         elif p in seen:
@@ -141,8 +143,8 @@ def validate_manifest(manifest: Any) -> List[str]:
         problems.append(f"index.backend must be one of {sorted(INDEX_BACKENDS)}")
     elif index["backend"] == "in-repo":
         p = index.get("path", DEFAULT_IN_REPO_INDEX)
-        if not isinstance(p, str) or not p or Path(p).is_absolute() or ".." in Path(p).parts:
-            problems.append("index.path must be a relative path inside the instance")
+        if not isinstance(p, str) or not p or "\0" in p or Path(p).is_absolute() or ".." in Path(p).parts:
+            problems.append("index.path must be a relative path inside the instance, with no NUL character")
         else:
             # A build replaces the file at index.path, so it must never name instance data.
             parts = Path(p).parts
@@ -163,6 +165,8 @@ def load_manifest(path: Path) -> Dict[str, Any]:
         manifest = json.loads(mpath.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise InstanceError(f"{mpath}: unreadable manifest: {exc}") from exc
+    except RecursionError:  # JSON nested deeper than the parser's stack
+        raise InstanceError(f"{mpath}: unreadable manifest: nested too deeply") from None
     problems = validate_manifest(manifest)
     if problems:
         raise InstanceError(f"{mpath}: " + "; ".join(problems))
