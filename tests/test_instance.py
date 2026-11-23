@@ -267,6 +267,16 @@ class ManifestTests(unittest.TestCase):
     def test_not_an_object(self):
         self.assertEqual(validate_manifest([]), ["manifest is not a JSON object"])
 
+    def test_nul_in_a_path_is_a_problem(self):
+        """Idle security cycle 2026-11-23: a NUL in sources[].path passed `check`, then read as
+        "missing"; in index.path it passed `check`, then `ask` crashed in mkdir with a ValueError."""
+        m = default_manifest("m")
+        m["sources"] = [{"kind": "chatgpt-export", "path": "sources/a\0b.json"}]
+        m["index"] = {"backend": "in-repo", "path": "index/a\0.sqlite"}
+        joined = " | ".join(validate_manifest(m))
+        self.assertIn("sources[0].path must not contain a NUL", joined)
+        self.assertIn("index.path", joined)
+
 
 class EngineIndependenceTests(unittest.TestCase):
     def test_engine_names_no_instance(self):
@@ -309,6 +319,15 @@ class CliTests(unittest.TestCase):
             r = self.run_cli("check", tmp)
             self.assertEqual(r.returncode, 1)
             self.assertIn("privacy.visibility", r.stderr)
+            self.assertNotIn("Traceback", r.stderr)
+
+    def test_check_reports_a_deeply_nested_manifest_without_a_traceback(self):
+        """Idle security cycle 2026-11-23: JSON nested past the parser's stack escaped as RecursionError."""
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / MANIFEST_NAME).write_text("[" * 200_000 + "]" * 200_000)
+            r = self.run_cli("check", tmp)
+            self.assertEqual(r.returncode, 1)
+            self.assertIn("nested too deeply", r.stderr)
             self.assertNotIn("Traceback", r.stderr)
 
     def test_undecodable_gitignore_and_unwritable_folder_fail_cleanly(self):
