@@ -50,6 +50,8 @@ FILING = {"request_id": "RQ-X", "filing_id": "FL-X", "filed_at": "2026-11-17T14:
 
 
 class SyntheticSet(unittest.TestCase):
+    """Requirements: R-DCK-1, R-DCK-3 (implementer mapping)."""
+
     def test_committed_fixture_equals_generator(self):
         with tempfile.TemporaryDirectory() as d:
             synthetic.write(Path(d))
@@ -98,6 +100,8 @@ class SyntheticSet(unittest.TestCase):
 
 
 class Reconstruction(unittest.TestCase):
+    """Requirements: R-DCK-2 (implementer mapping)."""
+
     def test_identical_text_declared_reconstruction_is_not_the_original(self):
         with tempfile.TemporaryDirectory() as d:
             m = write_set(Path(d), [REQ], [dict(REPLY, text="same")],
@@ -118,6 +122,8 @@ class Reconstruction(unittest.TestCase):
 
 
 class StopsAndUnknowns(unittest.TestCase):
+    """Requirements: R-DCK-2, R-DCK-3 (implementer mapping)."""
+
     def test_ambiguous_normalization_stops(self):
         with tempfile.TemporaryDirectory() as d:
             m = write_set(Path(d), [REQ], [dict(REPLY, text="Keep  the window")],
@@ -510,7 +516,10 @@ class StopsAndUnknowns(unittest.TestCase):
 
 
 class CopilotReviewAb49108(unittest.TestCase):
-    """One test per Copilot finding on ab49108; each fails on ab49108."""
+    """One test per Copilot finding on ab49108; each fails on ab49108.
+
+    Requirements: R-DCK-2, R-DCK-3 (implementer mapping).
+    """
 
     def test_replayed_records_do_not_bypass_the_ambiguity_stop(self):
         for replies, filings in (([dict(REPLY, text="Hello")] * 2, [dict(FILING, text="hello")]),
@@ -609,7 +618,10 @@ class CopilotReviewAb49108(unittest.TestCase):
 
 
 class CopilotReviewD47e1b5(unittest.TestCase):
-    """One test per Copilot finding on d47e1b5; each fails on d47e1b5."""
+    """One test per Copilot finding on d47e1b5; each fails on d47e1b5.
+
+    Requirements: R-DCK-2 (implementer mapping).
+    """
 
     def test_equivalent_path_spellings_are_one_grant(self):
         with tempfile.TemporaryDirectory() as d:
@@ -656,6 +668,8 @@ class CopilotReviewD47e1b5(unittest.TestCase):
 
 
 class CodexSecurityReviewD47e1b5(unittest.TestCase):
+    """Requirements: R-DCK-2, R-DCK-3 (implementer mapping)."""
+
     def test_supported_request_without_due_by_is_untraceable(self):
         req = {k: v for k, v in REQ.items() if k != "due_by"}
         late_pair = ([dict(REPLY, text="a", created_at="2026-11-17T20:00:00Z")],
