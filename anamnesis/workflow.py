@@ -117,7 +117,8 @@ def _build_from(ix: MessageIndex, root: Path, files: List[Path]) -> None:
             raise InstanceError(f"source {rel} is not a readable ChatGPT export: {exc}") from exc
 
 
-def _open(root: Path, manifest: dict) -> Tuple[MessageIndex, bool, str]:
+def _open(root: Path, manifest: dict) -> Tuple[MessageIndex, bool, str, IndexStore]:
+    """Open (building if needed) the index for the manifest's sources: (index, built, digest, store)."""
     files = _source_files(root, manifest)
     if not files:
         raise InstanceError(f"{root} has no sources; add one with `anamnesis ingest {root} <export>`")
@@ -126,7 +127,7 @@ def _open(root: Path, manifest: dict) -> Tuple[MessageIndex, bool, str]:
     if isinstance(store, CacheStore):  # the cache file itself, not only its folders: a planted link
         _refuse_redirects(root, [f"{CACHE_DIR}/{digest}.sqlite"])  # would be opened (and written) outside
     idx, built = open_index(store, digest, lambda ix: _build_from(ix, root, files))
-    return idx, built, digest
+    return idx, built, digest, store
 
 
 def ingest_into_instance(path: str | Path, exports: Iterable[str | Path]) -> InstanceIngest:
@@ -180,15 +181,15 @@ def ingest_into_instance(path: str | Path, exports: Iterable[str | Path]) -> Ins
                 listed.add(rel)
         _write_manifest(root, manifest)
 
-    idx, out.built, out.digest = _open(root, manifest)
+    idx, out.built, out.digest, store = _open(root, manifest)
     try:
         out.sources = len(manifest["sources"])
-        out.conversations = idx.con.execute("SELECT COUNT(DISTINCT conversation_id) FROM units").fetchone()[0]
+        out.conversations = idx.conversation_count()
         out.units_indexed = idx.count()
     finally:
         idx.close()
-    store = index_store(root, manifest)
-    if isinstance(store, CacheStore):
+    if isinstance(store, CacheStore):  # re-check just before deleting: the folder may have changed since
+        _refuse_redirects(root, [".anamnesis", CACHE_DIR], dirs=[CACHE_DIR])
         store.prune(keep=out.digest)
     _write_run(root, {"command": "ingest", "imported": out.imported, "already": out.already,
                       "sources": [s["path"] for s in manifest["sources"]], "sources_digest": out.digest,
@@ -202,7 +203,7 @@ def ask_instance(path: str | Path, question: str, *, limit: int = 3) -> Tuple[An
     root = _root(path)
     manifest = load_manifest(root)
     notes = _privacy_notes(manifest)
-    idx, built, _ = _open(root, manifest)
+    idx, built, _, _ = _open(root, manifest)
     try:
         if built:
             notes.insert(0, "index rebuilt from the instance's sources")

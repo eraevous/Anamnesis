@@ -149,6 +149,10 @@ class MessageIndex:
     def count(self) -> int:
         return self.con.execute("SELECT count(*) FROM units").fetchone()[0]
 
+    def conversation_count(self) -> int:
+        """How many conversations have at least one indexed unit."""
+        return self.con.execute("SELECT COUNT(DISTINCT conversation_id) FROM units").fetchone()[0]
+
     def search(self, query: str, *, limit: int = 10, active_only: bool = False,
                highlight: bool = True) -> List[Hit]:
         """Ranked hits. `highlight` marks matched words in the snippet with [ and ]; pass False
