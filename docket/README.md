@@ -1,6 +1,6 @@
 # Docket E comparator
 
-The first Exec acceptance trial's tool (DEC-251, item E of the Convention synthesis; handoff
+The first Exec acceptance trial's tool (DEC-251, item E of the Docket synthesis, from when the Docket was called the Convention; handoff
 HO-ANA-20261117-2VK1 in the private coordination records). For each request it asks one question: did
 the reply that came back get filed, once, unchanged, and is the filing the original rather than a later
 reconstruction?
