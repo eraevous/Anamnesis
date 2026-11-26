@@ -246,6 +246,14 @@ class ReplaceTests(unittest.TestCase):
             self.assertEqual(ix.search("quillfern"), [])
             self.assertEqual(ix.count(), 1)
 
+    def test_conversation_count_counts_only_conversations_with_indexed_text(self):
+        with MessageIndex() as ix:
+            self.assertEqual(ix.conversation_count(), 0)
+            ix.add(bundles_from_export_from(conv("conv-a", (("user", "one"), ("assistant", "two")))))
+            ix.add(bundles_from_export_from(conv("conv-b", (("user", "three"),))))
+            self.assertEqual(ix.conversation_count(), 2)
+            self.assertEqual(ix.count(), 3)
+
 
 class CellTests(unittest.TestCase):
     """Requirements: R-MEM-4, R-MEM-5 (implementer mapping)."""
