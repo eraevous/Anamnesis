@@ -1,0 +1,9 @@
+{"filed_at": "2026-11-17T14:00:00Z", "filing_id": "FL-01", "provenance": "original", "request_id": "RQ-01", "text": "The fixture plan holds. Keep F-11 off the active path."}
+{"filed_at": "2026-11-17T14:00:00Z", "filing_id": "FL-03", "provenance": "original", "request_id": "RQ-03", "text": "The benchmark will need a second island before the port."}
+{"filed_at": "2026-11-17T14:00:00Z", "filing_id": "FL-04a", "provenance": "original", "request_id": "RQ-04", "text": "Ship the comparator first."}
+{"filed_at": "2026-11-17T14:05:00Z", "filing_id": "FL-04b", "provenance": "original", "request_id": "RQ-04", "text": "Ship the comparator first."}
+{"filed_at": "2026-11-17T21:00:00Z", "filing_id": "FL-05", "provenance": "original", "request_id": "RQ-05", "text": "Late, but here."}
+{"filed_at": "2026-11-17T14:00:00Z", "filing_id": "FL-06", "provenance": "original", "request_id": "RQ-06", "text": "The pinned body."}
+{"body": {"path": "bodies/FL-07.txt", "sha256": "4955a4d9b034c1126b0ddbbfd4e2963eed8cf8ed79a2f75d0d5bb5bd32d42e30"}, "filed_at": "2026-11-17T14:00:00Z", "filing_id": "FL-07", "provenance": "original", "request_id": "RQ-07"}
+{"filed_at": "2026-11-17T16:00:00Z", "filing_id": "FL-08", "provenance": "reconstruction", "request_id": "RQ-08", "text": "Answer rewritten later from scratch; not the original."}
+{"filed_at": "2026-11-17T16:00:00Z", "filing_id": "FL-09", "provenance": "original", "request_id": "RQ-09", "text": "Answer rewritten later from scratch; not the original."}

@@ -93,7 +93,7 @@ Each reproduces one failure from the thread [thread], in synthetic form, and nam
 
 ### Authorship and coverage
 
-- At least one of F-01 to F-05 is written **blind** by Kate or a fresh-context agent from the failure description in this file alone, so the fixtures are not only the design author's idea of the failure.
+- At least one of F-01 to F-05 is written **blind** by ChatGPT (Kate) or a fresh-context agent from the failure description in this file alone, so the fixtures are not only the design author's idea of the failure.
 - Not covered yet: tool or code output as evidence, contradictions across many conversations, very long single turns, multimodal content. Listed so they are not mistaken for passed.
 
 ## Fixtures for the three stage-4 gaps

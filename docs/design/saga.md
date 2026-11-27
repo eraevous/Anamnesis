@@ -3,7 +3,7 @@
 - Status: **proposed**. Nothing here is accepted. Zach decides (AU-owner).
 - Author: claude:anamnesis#wake-20261111-03, a scheduled run, 2026-11-11.
 - Basis: Zach, 2026-11-10 20:07 CT: "I would also like to have a saga or the story so far that pulls forward some narrative structure against which more detailed Anamnesis records could be more easily retrieved when needed." Recorded in the private coordination ledger as DEC-205, which leaves shape, owner and generation method open.
-- Companion: `docs/design/segment-retrieval-and-claim-recurrence.md` (PR #1, branch `ana/segment-retrieval-design`, not merged). This note builds on it but doesn't depend on its merge. It is based on main, because PR #1 has no review yet (stacking rule, DEC-155).
+- Companion: `docs/design/segment-retrieval-and-claim-recurrence.md` (PR #1, merged to main 2026-11-12). When this note was written, PR #1 was unmerged and unreviewed, so this note was based on main rather than stacked on it (stacking rule, DEC-155).
 - First draft of an actual saga: private coordination records, `kairos/saga/the-story-so-far.md` (named by path only; not checkable from this public repo).
 
 ## How claims are labelled
@@ -14,7 +14,7 @@
 
 ## 1. The problem
 
-Detailed records are many and flat. A question like "why did we stop stacking PRs?" or "when did Anamnesis become a lane again?" currently means grepping hundreds of ledger lines, handoffs and status files, or rereading long threads. [record: the private decision ledger had 205 lines on 2026-11-11.] A flat search returns hits without the situation they came from. A summary gives the situation but loses the detail, and summaries tend to settle disagreements that were never settled [record: Abigail's convention input §5, "summaries should preserve conflicts rather than silently settle them"].
+Detailed records are many and flat. A question like "why did we stop stacking PRs?" or "when did Anamnesis become a lane (an agent) again?" currently means grepping hundreds of ledger lines, handoffs and status files, or rereading long threads. [record: the private decision ledger had 205 lines on 2026-11-11.] A flat search returns hits without the situation they came from. A summary gives the situation but loses the detail, and summaries tend to settle disagreements that were never settled [record: Abigail's input to the Docket (the governance review, then called the Convention) §5, "summaries should preserve conflicts rather than silently settle them"].
 
 The saga is the middle layer: a short narrative that says what happened and when, where every sentence points down to the records that support it. You read the story to find the place, then descend to the evidence.
 
@@ -61,18 +61,18 @@ question
 ## 4. Generation: derived, not hand-kept [proposed]
 
 - The saga is a **derived artifact**. Records outrank it. When they disagree, the record wins and the beat is revised.
-- It is regenerated or extended at **checkpoints**: the end of a week, a convention, a successor handoff, or when a lane goes dormant. Not on every commit.
+- It is regenerated or extended at **checkpoints**: the end of a week, a Docket session, a successor handoff, or when a lane (an agent) goes dormant. Not on every commit.
 - Generation reads only records (ledger lines, handoffs, outputs, status files, PR metadata). It doesn't read raw chat exports. Where a record cites a conversation, the beat carries that record's locator, and Anamnesis descends from there.
 - Closed chapters are append-only. A later record that changes a closed chapter's story gets a **revision line** under the chapter, using PR1's claim-delta operations (§5 there): `SUPERSEDE`, `WEAKEN`, `CONTRADICT`, and so on. It is not a silent rewrite. Example: "2026-11-10: DEC-188 put the expansion items in this chapter on hold (WEAKEN 'next')".
 - A generated beat with no locator fails the check (§7). So does a locator that doesn't resolve.
 
 ## 5. Dissent is kept [proposed]
 
-Following Abigail's convention input §5 [record]: a chapter's "Kept dissent" lists each live disagreement with both positions and their locators. The generator must not resolve them. A dissent leaves the list only when a record resolves it (a decision, a challenge set to `resolved`), and the revision line names that record.
+Following Abigail's Docket input §5 [record]: a chapter's "Kept dissent" lists each live disagreement with both positions and their locators. The generator must not resolve them. A dissent leaves the list only when a record resolves it (a decision, a challenge set to `resolved`), and the revision line names that record.
 
 ## 6. Other uses
 
-- **Convention input** (DEC-202) [record]: Zach called it the "Federalist Papers" input. The saga gives the convention a shared, sourced account of the last weeks to argue from.
+- **Docket input** (DEC-202; the Docket was then called the Convention) [record]: Zach called it the "Federalist Papers" input, a retrospective. The saga gives the Docket a shared, sourced account of the last weeks to argue from.
 - **Reinitialization seed** [record: convention input 2026-11-10-zach-dialup, Zach 18:24 CT: "'reinitialization ThreadSeeds' might become more common practice"]. A reinit seed has a narrative part. The last 1–2 chapters plus the open-questions lists are that part, generated from records so they're current when used.
 - **Successor handoffs**: thread-seed and thread-distill (QAT-Kits) can cite chapters instead of retelling the story.
 
@@ -104,7 +104,7 @@ A small stdlib script, `saga_check`, to be built later (not in this PR):
 2. **Evidence for the concern:** the 2026-11-05 synthesis found a recurring pattern, "the provenance layer gets built before the test of whether it saves anyone anything" [record: kairos/synthesis-2026-11-05.md §A]. A saga is one more layer.
 3. **Counter-evidence:** Zach asked for it directly [Zach]. DEC-200 allows shipping on an asserted benefit with a stated mechanism [record]. The saga stays non-citable (§8), so it can't become authority.
 4. **If the concern is right:** chapters get read as truth, and dissent gets smoothed out in later regenerations. The cost is wrong answers that look sourced.
-5. **What to test, escalate or decide:** run F-S1 before automating generation. Zach decides whether the saga is a lane deliverable or a coordinator checkpoint duty (Q-S1 below). Keep the "never citable" rule as a requirement record (R-SAGA-2).
+5. **What to test, escalate or decide:** run F-S1 before automating generation. Zach decides whether the saga is a lane deliverable or an orchestrator (coordinator) checkpoint duty (Q-S1 below). Keep the "never citable" rule as a requirement record (R-SAGA-2).
 
 ## 11. Open questions (for Zach; none decided)
 - **Q-S1 Owner:** who regenerates at checkpoints, the Anamnesis lane or the coordinator? Proposed: the lane writes the generator and the coordinator runs it at checkpoints.
